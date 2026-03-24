@@ -1,0 +1,43 @@
+@php
+    $embedded = $embedded ?? false;
+    $showHeading = $showHeading ?? true;
+@endphp
+
+@unless ($embedded)
+<article class="card">
+@endunless
+    @if ($showHeading)
+        <h2>Partner Companies</h2>
+    @endif
+    @if ($companies->isEmpty())
+        <p>No partner companies yet.</p>
+    @else
+        <table>
+            <thead><tr><th>Name</th><th>Positions</th><th>Required Documents</th><th>Supervisor Details</th><th>Slots</th><th>Action</th></tr></thead>
+            <tbody>
+                @foreach ($companies as $company)
+                    <tr>
+                        <td>
+                            <strong>{{ $company->name }}</strong><br>
+                            <small>{{ $company->industry ?: 'No industry type set' }}</small><br>
+                            <small>{{ $company->address ?: 'No address set' }}</small>
+                        </td>
+                        <td>{{ implode(', ', $company->availablePositionsList()) ?: 'No positions listed' }}</td>
+                        <td>{{ implode(', ', $company->requiredDocumentsList()) ?: 'No required documents listed' }}</td>
+                        <td>
+                            @if ($company->supervisors->isNotEmpty())
+                                {{ $company->supervisors->pluck('name')->implode(', ') }}
+                            @else
+                                {{ $company->contact_person ?: 'No supervisor assigned yet' }}
+                            @endif
+                        </td>
+                        <td>{{ $company->intern_slot_limit }}</td>
+                        <td><a class="panel-link" href="{{ $dashboardBaseUrl.'?section=companies&edit='.$company->id }}">Edit</a></td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    @endif
+@unless ($embedded)
+</article>
+@endunless

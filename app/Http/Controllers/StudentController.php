@@ -1,0 +1,164 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Http\Controllers\Concerns\InteractsWithTenantRouting;
+use App\Mail\StudentCredentialsMail;
+use App\Models\Student;
+use App\Models\Supervisor;
+use App\Models\TenantAdmin;
+use App\Support\Security\PasswordGenerator;
+use App\Support\Tenancy\CurrentTenant;
+use App\Models\PartnerCompany;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
+
+class StudentController extends Controller
+{
+    use InteractsWithTenantRouting;
+
+    public function store(
+        Request $request,
+        CurrentTenant $currentTenant,
+        PasswordGenerator $passwordGenerator
+    ): RedirectResponse
+    {
+        $tenant = $currentTenant->tenant();
+
+        abort_unless($tenant, 404);
+
+        $data = $request->validate([
+            'student_number' => ['required', 'string', 'max:255', 'unique:tenant.students,student_number'],
+            'first_name' => ['required', 'string', 'max:255'],
+            'last_name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', 'unique:tenant.students,email'],
+            'password' => ['nullable', 'string', 'min:8'],
+            'program' => ['nullable', 'string', 'max:255'],
+            'required_hours' => ['required', 'numeric', 'min:1'],
+            'status' => ['required', Rule::in(['pending', 'accepted', 'deployed', 'completed'])],
+            'partner_company_id' => ['nullable', 'integer', 'exists:tenant.partner_companies,id'],
+        ]);
+
+        $this->ensureEmailIsAvailable($data['email']);
+        $plainPassword = filled($data['password'] ?? null)
+            ? $data['password']
+            : $passwordGenerator->generate();
+
+        $this->ensureCompanyHasCapacity(
+            $data['partner_company_id'] ?? null,
+            $data['status']
+        );
+
+        $student = Student::query()->create(array_merge($data, [
+            'password' => $plainPassword,
+            'completed_hours' => 0,
+            'is_active' => true,
+            'email_verified_at' => now(),
+            'registered_at' => now(),
+        ]));
+
+        rescue(function () use ($tenant, $student, $plainPassword) {
+            Mail::to($student->email)->send(
+                new StudentCredentialsMail($tenant, $student, $plainPassword, app(\App\Support\Tenancy\TenantUrlGenerator::class))
+            );
+        }, report: true);
+
+        return $this->redirectToTenantRoute(
+            $request,
+            $tenant,
+            'admin.dashboard',
+            ['section' => 'students'],
+            'Student added and credentials emailed.'
+        );
+    }
+
+    public function update(Request $request, CurrentTenant $currentTenant, Student $student): RedirectResponse
+    {
+        $tenant = $currentTenant->tenant();
+
+        abort_unless($tenant, 404);
+
+        $data = $request->validate([
+            'student_number' => ['required', 'string', 'max:255', Rule::unique('tenant.students', 'student_number')->ignore($student->getKey())],
+            'first_name' => ['required', 'string', 'max:255'],
+            'last_name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', Rule::unique('tenant.students', 'email')->ignore($student->getKey())],
+            'password' => ['nullable', 'string', 'min:8'],
+            'program' => ['nullable', 'string', 'max:255'],
+            'required_hours' => ['required', 'numeric', 'min:1'],
+            'completed_hours' => ['required', 'numeric', 'min:0'],
+            'status' => ['required', Rule::in(['pending', 'accepted', 'deployed', 'completed'])],
+            'partner_company_id' => ['nullable', 'integer', 'exists:tenant.partner_companies,id'],
+            'is_active' => ['required', 'boolean'],
+            'email_verified' => ['nullable', 'boolean'],
+        ]);
+
+        $this->ensureEmailIsAvailable($data['email'], $student->getKey());
+        $this->ensureCompanyHasCapacity(
+            $data['partner_company_id'] ?? null,
+            $data['status'],
+            $student->getKey()
+        );
+
+        if (blank($data['password'] ?? null)) {
+            unset($data['password']);
+        }
+
+        $data['suspended_at'] = $data['is_active'] ? null : now();
+        $data['email_verified_at'] = $request->boolean('email_verified')
+            ? ($student->email_verified_at ?? now())
+            : null;
+
+        unset($data['email_verified']);
+
+        $student->update($data);
+
+        return $this->redirectToTenantRoute(
+            $request,
+            $tenant,
+            'admin.dashboard',
+            ['section' => 'students'],
+            'Student updated.'
+        );
+    }
+
+    protected function ensureEmailIsAvailable(string $email, ?int $ignoreStudentId = null): void
+    {
+        $emailTaken = TenantAdmin::query()->where('email', $email)->exists()
+            || Supervisor::query()->where('email', $email)->exists()
+            || Student::query()
+                ->when($ignoreStudentId, fn ($query) => $query->whereKeyNot($ignoreStudentId))
+                ->where('email', $email)
+                ->exists();
+
+        if ($emailTaken) {
+            throw ValidationException::withMessages([
+                'email' => 'This email is already being used by another tenant account.',
+            ]);
+        }
+    }
+
+    protected function ensureCompanyHasCapacity(?int $companyId, string $status, ?int $ignoreStudentId = null): void
+    {
+        if (! $companyId || ! in_array($status, ['accepted', 'deployed'], true)) {
+            return;
+        }
+
+        $company = PartnerCompany::query()->findOrFail($companyId);
+
+        $occupiedSlots = Student::query()
+            ->where('partner_company_id', $companyId)
+            ->whereIn('status', ['accepted', 'deployed'])
+            ->when($ignoreStudentId, fn ($query) => $query->whereKeyNot($ignoreStudentId))
+            ->count();
+
+        if ($occupiedSlots >= $company->intern_slot_limit) {
+            throw ValidationException::withMessages([
+                'partner_company_id' => 'This company has already reached its internship slot limit.',
+            ]);
+        }
+    }
+}
