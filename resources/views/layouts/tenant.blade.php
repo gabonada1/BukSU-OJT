@@ -1,11 +1,27 @@
 @php
     $layoutMode = $layoutMode ?? 'dashboard';
     $hideTenantHeader = $hideTenantHeader ?? ($layoutMode === 'login');
-    $systemLogo = asset('images/logos/logo.jpg');
-    $tenantRole = request()->routeIs('tenant*.supervisor.*')
-        ? 'supervisor'
-        : (request()->routeIs('tenant*.student.*') ? 'student' : 'admin');
-    $tenantDomainRoute = request()->routeIs('tenant.domain.*');
+    $tenantBranding = is_array($tenant->settings['branding'] ?? null) ? $tenant->settings['branding'] : [];
+    $tenantPortalTitle = filled($tenantBranding['portal_title'] ?? null)
+        ? $tenantBranding['portal_title']
+        : config('app.name', 'BukSU Practicum Portal');
+    $tenantAccent = preg_match('/^#[0-9A-Fa-f]{6}$/', (string) ($tenantBranding['accent'] ?? ''))
+        ? strtoupper($tenantBranding['accent'])
+        : '#7B1C2E';
+    $tenantSecondary = preg_match('/^#[0-9A-Fa-f]{6}$/', (string) ($tenantBranding['secondary'] ?? ''))
+        ? strtoupper($tenantBranding['secondary'])
+        : '#F5A623';
+    $systemLogo = filled($tenantBranding['logo_path'] ?? null)
+        ? asset($tenantBranding['logo_path'])
+        : asset('images/logos/logo.jpg');
+    $tenantRole = $tenantRole ?? match (true) {
+        auth('supervisor')->check() => 'supervisor',
+        auth('student')->check() => 'student',
+        auth('tenant_admin')->check() => 'admin',
+        request()->routeIs('tenant*.supervisor.*') => 'supervisor',
+        request()->routeIs('tenant*.student.*') => 'student',
+        default => 'admin',
+    };
     $tenantActor = match ($tenantRole) {
         'supervisor' => auth('supervisor')->user(),
         'student' => auth('student')->user(),
@@ -15,50 +31,48 @@
         ? optional($tenantActor)->full_name
         : optional($tenantActor)->name;
     $tenantRoleLabel = match ($tenantRole) {
-        'supervisor' => 'Teacher',
+        'supervisor' => 'Company Supervisor',
         'student' => 'Student',
-        default => 'College Admin',
+        default => 'Internship Coordinator',
     };
+    $tenantAccessLabel = preg_replace('#^https?://#', '', app(\App\Support\Tenancy\TenantUrlGenerator::class)->loginUrl($tenant));
     $tenantDashboardUrl = match ($tenantRole) {
-        'supervisor' => $tenantDomainRoute
-            ? route('tenant.domain.supervisor.dashboard')
-            : route('tenant.supervisor.dashboard', $tenant),
-        'student' => $tenantDomainRoute
-            ? route('tenant.domain.student.dashboard')
-            : route('tenant.student.dashboard', $tenant),
-        default => $tenantDomainRoute
-            ? route('tenant.domain.admin.dashboard')
-            : route('tenant.admin.dashboard', $tenant),
+        'supervisor' => route('tenant.supervisor.dashboard'),
+        'student' => route('tenant.student.dashboard'),
+        default => route('tenant.admin.dashboard'),
     };
-    $tenantProfileUrl = $tenantDomainRoute
-        ? route('tenant.domain.profile.show')
-        : route('tenant.profile.show', $tenant);
-    $tenantLogoutAction = $tenantDomainRoute
-        ? route('tenant.domain.logout')
-        : route('tenant.logout', $tenant);
-    $tenantDomainLabel = $tenant->domain
-        ?: ($tenant->subdomain ? $tenant->subdomain.'.'.config('tenancy.local_domain_suffix', 'localhost') : '/tenants/'.$tenant->slug);
+    $tenantProfileUrl = match ($tenantRole) {
+        'supervisor' => route('tenant.supervisor.profile.show'),
+        'student' => route('tenant.student.profile.show'),
+        default => route('tenant.admin.profile.show'),
+    };
+    $tenantLogoutAction = match ($tenantRole) {
+        'supervisor' => route('tenant.supervisor.logout'),
+        'student' => route('tenant.student.logout'),
+        default => route('tenant.admin.logout'),
+    };
     $tenantNavigation = match ($tenantRole) {
         'supervisor' => [
             ['label' => 'Students', 'href' => $tenantDashboardUrl.'#students'],
-            ['label' => 'Logs', 'href' => $tenantDashboardUrl.'#logs'],
-            ['label' => 'Profile', 'href' => $tenantProfileUrl, 'active' => request()->routeIs('tenant*.profile.*')],
+            ['label' => 'Progress & Hours', 'href' => $tenantDashboardUrl.'#logs'],
+            ['label' => 'Profile', 'href' => $tenantProfileUrl, 'active' => request()->routeIs('tenant*.supervisor.profile.*')],
         ],
         'student' => [
-            ['label' => 'Applications', 'href' => $tenantDashboardUrl.'#applications'],
-            ['label' => 'Requirements', 'href' => $tenantDashboardUrl.'#requirements'],
-            ['label' => 'Logs', 'href' => $tenantDashboardUrl.'#logs'],
-            ['label' => 'Profile', 'href' => $tenantProfileUrl, 'active' => request()->routeIs('tenant*.profile.*')],
+            ['label' => 'Internship Applications', 'href' => $tenantDashboardUrl.'#applications'],
+            ['label' => 'Forms & Requirements', 'href' => $tenantDashboardUrl.'#requirements'],
+            ['label' => 'Progress & Hours', 'href' => $tenantDashboardUrl.'#logs'],
+            ['label' => 'Profile', 'href' => $tenantProfileUrl, 'active' => request()->routeIs('tenant*.student.profile.*')],
         ],
         default => [
-            ['label' => 'Companies', 'href' => $tenantDashboardUrl.'?section=companies', 'key' => 'companies'],
-            ['label' => 'Applications', 'href' => $tenantDashboardUrl.'?section=applications', 'key' => 'applications'],
-            ['label' => 'Supervisors', 'href' => $tenantDashboardUrl.'?section=supervisors', 'key' => 'supervisors'],
+            ['label' => 'Organizations', 'href' => $tenantDashboardUrl.'?section=companies', 'key' => 'companies'],
+            ['label' => 'Student Applications', 'href' => $tenantDashboardUrl.'?section=applications', 'key' => 'applications'],
+            ['label' => 'Company Supervisors', 'href' => $tenantDashboardUrl.'?section=supervisors', 'key' => 'supervisors'],
             ['label' => 'Students', 'href' => $tenantDashboardUrl.'?section=students', 'key' => 'students'],
-            ['label' => 'User Management', 'href' => $tenantDashboardUrl.'?section=users', 'key' => 'users'],
-            ['label' => 'Requirements', 'href' => $tenantDashboardUrl.'?section=requirements', 'key' => 'requirements'],
-            ['label' => 'Hour Logs', 'href' => $tenantDashboardUrl.'?section=hours', 'key' => 'hours'],
-            ['label' => 'Profile', 'href' => $tenantProfileUrl, 'active' => request()->routeIs('tenant*.profile.*')],
+            ['label' => 'RBAC & Users', 'href' => $tenantDashboardUrl.'?section=users', 'key' => 'users'],
+            ['label' => 'Role Permissions', 'href' => route('tenant.admin.rbac.index'), 'active' => request()->routeIs('tenant*.admin.rbac.*')],
+            ['label' => 'Forms & Requirements', 'href' => $tenantDashboardUrl.'?section=requirements', 'key' => 'requirements'],
+            ['label' => 'Progress & Hours', 'href' => $tenantDashboardUrl.'?section=hours', 'key' => 'hours'],
+            ['label' => 'Profile', 'href' => $tenantProfileUrl, 'active' => request()->routeIs('tenant*.admin.profile.*')],
         ],
     };
     $tenantCurrentSection = request()->query('section', 'companies');
@@ -68,7 +82,7 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>{{ $pageTitle ?? ($tenant->name.' | '.config('app.name', 'BukSU Practicum')) }}</title>
+        <title>{{ $pageTitle ?? ($tenant->name.' | '.$tenantPortalTitle) }}</title>
         @include('layouts.partials.app-theme')
     </head>
     <body class="theme-{{ $layoutMode }}">
@@ -81,16 +95,17 @@
                         <div class="tenant-brand-panel">
                             <div class="tenant-brand">
                                 <div class="tenant-brand-mark">
-                                    <img src="{{ $systemLogo }}" alt="BukSU Logo" class="brand-logo-image">
+                                    <img src="{{ $systemLogo }}" alt="{{ $tenantPortalTitle }} Logo" class="brand-logo-image">
                                 </div>
                                 <div>
                                     <strong>{{ $tenantRoleLabel }}</strong>
                                     <span>{{ $tenant->name }}</span>
+                                    <small class="brand-university-label">{{ $tenantPortalTitle }}</small>
                                 </div>
                             </div>
                         </div>
 
-                        <nav class="sidebar-nav" aria-label="Tenant navigation">
+                        <nav class="sidebar-nav" aria-label="College portal navigation">
                             @foreach ($tenantNavigation as $item)
                                 <a class="sidebar-link {{ (($item['key'] ?? null) === $tenantCurrentSection || ($item['active'] ?? false)) ? 'active' : '' }}" href="{{ $item['href'] }}">{{ $item['label'] }}</a>
                             @endforeach
@@ -102,8 +117,8 @@
                                 <span>{{ $tenantActorName ?: $tenantRoleLabel }}</span>
                             </div>
                             <div class="tenant-meta">
-                                <strong>Domain</strong>
-                                <span>{{ $tenantDomainLabel }}</span>
+                                <strong>{{ $tenantRole === 'admin' ? 'RBAC Scope' : 'College Portal' }}</strong>
+                                <span>{{ $tenantRole === 'admin' ? 'Tenant users and portal records' : $tenantAccessLabel }}</span>
                             </div>
                             <form method="POST" action="{{ $tenantLogoutAction }}" class="chrome-inline-form">
                                 @csrf

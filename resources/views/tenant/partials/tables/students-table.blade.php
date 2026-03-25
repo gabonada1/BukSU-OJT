@@ -10,14 +10,14 @@
         <h2>Students</h2>
     @endif
     @if ($students->isEmpty())
-        <p>No students yet.</p>
+        <p>No students enrolled yet.</p>
     @else
         <table>
             <thead><tr><th>Name</th><th>Email</th><th>Verification</th><th>Status</th><th>Hours</th><th>Action</th></tr></thead>
             <tbody>
                 @foreach ($students as $student)
                     <tr>
-                        <td>{{ $student->full_name }}<br><small>{{ $student->partnerCompany?->name ?: 'Unassigned company' }}</small></td>
+                        <td>{{ $student->full_name }}<br><small>{{ $student->partnerCompany?->name ?: 'Unassigned organization' }}</small></td>
                         <td>{{ $student->email }}</td>
                         <td><span class="status-pill {{ $student->email_verified_at ? 'active' : 'scheduled' }}">{{ $student->email_verified_at ? 'Verified' : 'Pending' }}</span></td>
                         <td><span class="badge">{{ $student->status }}</span></td>

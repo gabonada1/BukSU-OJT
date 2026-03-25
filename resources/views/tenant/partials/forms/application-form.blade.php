@@ -5,9 +5,7 @@
     $isEditing = $mode === 'edit' && filled($editingApplication ?? null);
     $applicationRecord = $editingApplication ?? null;
     $action = $isEditing
-        ? (request()->routeIs('tenant.domain.*')
-            ? route('tenant.domain.admin.applications.update', $applicationRecord)
-            : route('tenant.admin.applications.update', ['tenant' => $tenant, 'application' => $applicationRecord]))
+        ? route('tenant.admin.applications.update', ['application' => $applicationRecord])
         : $formActions['applications'];
 @endphp
 
@@ -15,7 +13,7 @@
 <article class="card">
 @endunless
     @if ($showHeading)
-        <h2>{{ $isEditing ? 'Edit Application' : 'New Application' }}</h2>
+        <h2>{{ $isEditing ? 'Edit OJT Application' : 'New OJT Application' }}</h2>
     @endif
     <form method="POST" action="{{ $action }}" enctype="multipart/form-data">
         @csrf
@@ -31,7 +29,7 @@
             </select>
         </label>
         <label>
-            Partner Company
+            Partner Organization
             <select name="partner_company_id" required>
                 @foreach ($companies as $company)
                     <option value="{{ $company->id }}" @selected((string) old('partner_company_id', $applicationRecord?->partner_company_id) === (string) $company->id)>{{ $company->name }}</option>
@@ -48,12 +46,12 @@
             </select>
         </label>
         <label>Student Notes <textarea name="student_notes" placeholder="Application notes, preferred schedule, or placement context">{{ old('student_notes', $applicationRecord?->student_notes) }}</textarea></label>
-        <label>Admin Feedback <textarea name="admin_feedback" placeholder="Approval notes, rejection reason, or deployment remarks">{{ old('admin_feedback', $applicationRecord?->admin_feedback) }}</textarea></label>
+        <label>Coordinator Feedback <textarea name="admin_feedback" placeholder="Approval notes, rejection reason, or deployment remarks">{{ old('admin_feedback', $applicationRecord?->admin_feedback) }}</textarea></label>
         <label>Resume <input type="file" name="resume" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"></label>
         <label>Endorsement Letter <input type="file" name="endorsement_letter" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"></label>
         <label>MOA <input type="file" name="moa" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"></label>
         <label>Clearance <input type="file" name="clearance" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"></label>
-        <button type="submit" class="small-button">{{ $isEditing ? 'Save Changes' : 'Save Application' }}</button>
+        <button type="submit" class="small-button">{{ $isEditing ? 'Save Changes' : 'Save OJT Application' }}</button>
     </form>
 @unless ($embedded)
 </article>

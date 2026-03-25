@@ -7,10 +7,10 @@
 <article class="card">
 @endunless
     @if ($showHeading)
-        <h2>Recent Requirements</h2>
+        <h2>Recent Forms & Requirements</h2>
     @endif
     @if ($requirements->isEmpty())
-        <p>No requirements submitted yet.</p>
+        <p>No practicum requirements submitted yet.</p>
     @else
         <table>
             <thead><tr><th>Student</th><th>Requirement</th><th>Document</th><th>Status</th><th>Feedback</th><th>Action</th></tr></thead>

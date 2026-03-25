@@ -7,10 +7,10 @@
 <article class="card">
 @endunless
     @if ($showHeading)
-        <h2>Recent OJT Logs</h2>
+        <h2>Recent Progress & Hour Logs</h2>
     @endif
     @if ($hourLogs->isEmpty())
-        <p>No hour logs yet.</p>
+        <p>No OJT hour logs yet.</p>
     @else
         <table>
             <thead><tr><th>Student</th><th>Date</th><th>Hours</th><th>Action</th></tr></thead>

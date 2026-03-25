@@ -8,8 +8,8 @@
 @section('content')
     <section class="page-head">
         <div>
-            <h1>Teacher Dashboard</h1>
-            <p>{{ $supervisor->name }} &middot; {{ $company?->name ?: 'No company assigned yet' }}</p>
+            <h1>Company Supervisor Dashboard</h1>
+            <p>{{ $supervisor->name }} &middot; {{ $company?->name ?: 'No partner organization assigned yet' }}</p>
         </div>
 
         <div class="page-mini-stats">
@@ -18,7 +18,7 @@
                 <span>{{ $students->count() }}</span>
             </div>
             <div class="page-mini-card">
-                <strong>Logs</strong>
+                <strong>Hour Logs</strong>
                 <span>{{ $hourLogs->count() }}</span>
             </div>
             <div class="page-mini-card">
@@ -36,7 +36,7 @@
             </div>
 
             @if ($students->isEmpty())
-                <p>No students assigned yet.</p>
+                <p>No students enrolled yet.</p>
             @else
                 <ul class="soft-list">
                     @foreach ($students as $student)
@@ -60,12 +60,12 @@
 
         <article id="logs" class="section-card section-anchor">
             <div class="section-header">
-                <h2>Logs</h2>
+                <h2>Progress & Hour Logs</h2>
                 <span class="pill">Recent</span>
             </div>
 
             @if ($hourLogs->isEmpty())
-                <p>No recent logs yet.</p>
+                <p>No recent hour logs yet.</p>
             @else
                 <table>
                     <thead>

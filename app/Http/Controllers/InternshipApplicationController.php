@@ -108,7 +108,7 @@ class InternshipApplicationController extends Controller
             ->whereIn('status', ['pending', 'accepted', 'deployed'])
             ->exists()) {
             throw ValidationException::withMessages([
-                'partner_company_id' => 'You already have an active internship application. Wait for it to be reviewed before submitting another one.',
+                'partner_company_id' => 'You already have an active internship application. Wait for the internship coordinator to review it before submitting another one.',
             ]);
         }
 
@@ -223,7 +223,7 @@ class InternshipApplicationController extends Controller
 
         if ($occupiedSlots >= $company->intern_slot_limit) {
             throw ValidationException::withMessages([
-                'partner_company_id' => 'This company has already reached its internship slot limit.',
+                'partner_company_id' => 'This partner organization has already reached its OJT slot limit.',
             ]);
         }
     }
@@ -242,7 +242,7 @@ class InternshipApplicationController extends Controller
                 ->whereIn('status', ['pending', 'accepted'])
                 ->update([
                     'status' => 'rejected',
-                    'admin_feedback' => 'Closed after another internship application was approved.',
+                    'admin_feedback' => 'Closed after another OJT application was approved.',
                     'reviewed_at' => now(),
                 ]);
 

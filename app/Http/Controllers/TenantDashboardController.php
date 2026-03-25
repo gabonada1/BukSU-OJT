@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Course;
 use App\Models\InternshipApplication;
 use App\Models\OjtHourLog;
 use App\Models\PartnerCompany;
@@ -21,36 +22,38 @@ class TenantDashboardController extends Controller
         abort_unless($tenant, 404);
 
         $companies = PartnerCompany::query()->with('supervisors')->latest()->get();
-        $students = Student::query()->with(['partnerCompany', 'applications'])->latest()->get();
+        $students = Student::query()->with(['partnerCompany', 'applications', 'course'])->latest()->get();
         $applications = InternshipApplication::query()->with(['student', 'partnerCompany'])->latest()->get();
+        $courses = Course::active()->get();
         $supervisors = Supervisor::query()->with('partnerCompany')->latest()->get();
         $requirements = StudentRequirement::query()->with('student')->latest()->get();
         $hourLogs = OjtHourLog::query()->with('student')->latest('log_date')->get();
         $userDirectory = $this->userDirectory($students, $supervisors);
         $currentSection = request()->query('section', 'companies');
         $editKey = request()->query('edit');
+        $portalTitle = data_get($tenant->settings, 'branding.portal_title', config('app.name', 'BukSU Practicum Portal'));
 
         return view('tenant.admin.dashboard', [
             'tenant' => $tenant,
-            'pageTitle' => 'Admin Dashboard | '.config('app.name', 'BukSU Practicum'),
+            'pageTitle' => 'Internship Coordinator Dashboard | '.$portalTitle,
             'roles' => [
                 'College Admin / Internship Coordinator',
                 'Students',
                 'Company Supervisor',
-                'Practicum Head / Dean',
+                'Partner Organizations',
             ],
             'modules' => [
-                'Partner company management',
-                'Student internship applications',
-                'Requirement and report submissions',
-                'OJT hour tracking and validation',
-                'Supervisor evaluation workflows',
-                'College-wide dashboards and reports',
+                'Partner companies and internship slot management',
+                'Student applications and deployment assignments',
+                'Forms, requirements, and progress report submissions',
+                'OJT hour tracking, validation, and attendance review',
+                'Company supervisor evaluations and report validation',
+                'College-level monitoring for forms, reports, and evaluations',
             ],
             'databaseStrategy' => [
-                'Central app database stores tenant registry, plans, platform settings, and shared authentication hooks.',
-                'Each tenant gets its own dedicated database for students, partner companies, documents, OJT logs, reports, and evaluations.',
-                'The current deployment is focused on College of Technologies as the first active tenant.',
+                'The University Administration database stores the college registry, license tiers, platform settings, and shared authentication hooks.',
+                'Each college portal uses a dedicated database for partner companies, student applications, forms and requirements, progress reports, and evaluation forms.',
+                'The seeded college portals are College of Nursing, College of Business, College of Technologies, College of Public Administration, College of Education, and College of Arts & Sciences.',
             ],
             'stats' => [
                 'companies' => $companies->count(),
@@ -64,9 +67,15 @@ class TenantDashboardController extends Controller
             'companies' => $companies,
             'students' => $students,
             'applications' => $applications,
+            'courses' => $courses,
             'supervisors' => $supervisors,
             'requirements' => $requirements,
             'hourLogs' => $hourLogs,
+            'ojtSettings' => [
+                'default_ojt_hours' => $tenant->settings['default_ojt_hours'] ?? 486,
+                'allow_student_hour_override' => $tenant->settings['allow_student_hour_override'] ?? false,
+                'ojt_hours_note' => $tenant->settings['ojt_hours_note'] ?? null,
+            ],
             'userDirectory' => $userDirectory,
             'editing' => [
                 'companies' => $currentSection === 'companies' ? $companies->firstWhere('id', (int) $editKey) : null,
@@ -88,24 +97,13 @@ class TenantDashboardController extends Controller
 
     protected function formActions($tenant): array
     {
-        if (request()->routeIs('tenant.domain.*')) {
-            return [
-                'companies' => route('tenant.domain.admin.companies.store'),
-                'applications' => route('tenant.domain.admin.applications.store'),
-                'students' => route('tenant.domain.admin.students.store'),
-                'supervisors' => route('tenant.domain.admin.supervisors.store'),
-                'requirements' => route('tenant.domain.admin.requirements.store'),
-                'hours' => route('tenant.domain.admin.hours.store'),
-            ];
-        }
-
         return [
-            'companies' => route('tenant.admin.companies.store', $tenant),
-            'applications' => route('tenant.admin.applications.store', $tenant),
-            'students' => route('tenant.admin.students.store', $tenant),
-            'supervisors' => route('tenant.admin.supervisors.store', $tenant),
-            'requirements' => route('tenant.admin.requirements.store', $tenant),
-            'hours' => route('tenant.admin.hours.store', $tenant),
+            'companies' => route('tenant.admin.companies.store'),
+            'applications' => route('tenant.admin.applications.store'),
+            'students' => route('tenant.admin.students.store'),
+            'supervisors' => route('tenant.admin.supervisors.store'),
+            'requirements' => route('tenant.admin.requirements.store'),
+            'hours' => route('tenant.admin.hours.store'),
         ];
     }
 
@@ -122,7 +120,7 @@ class TenantDashboardController extends Controller
                 'status' => $admin->accountStatusLabel(),
                 'is_active' => $admin->is_active,
                 'email_verified_at' => now(),
-                'context' => 'Tenant admin',
+                'context' => 'Internship Coordinator',
                 'model' => $admin,
             ];
         });
@@ -138,7 +136,7 @@ class TenantDashboardController extends Controller
                 'status' => $supervisor->accountStatusLabel(),
                 'is_active' => $supervisor->is_active,
                 'email_verified_at' => $supervisor->email_verified_at,
-                'context' => $supervisor->department ?: ($supervisor->partnerCompany?->name ?: 'Teacher / Supervisor'),
+                'context' => $supervisor->department ?: ($supervisor->partnerCompany?->name ?: 'Company Supervisor'),
                 'model' => $supervisor,
             ];
         });
@@ -154,7 +152,7 @@ class TenantDashboardController extends Controller
                 'status' => $student->accountStatusLabel(),
                 'is_active' => $student->is_active,
                 'email_verified_at' => $student->email_verified_at,
-                'context' => $student->program ?: 'No program set',
+                'context' => $student->course?->code ?: ($student->program ?: 'No program set'),
                 'model' => $student,
             ];
         });

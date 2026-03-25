@@ -4,12 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\InteractsWithTenantRouting;
 use App\Mail\StudentCredentialsMail;
+use App\Models\Course;
+use App\Models\PartnerCompany;
 use App\Models\Student;
 use App\Models\Supervisor;
 use App\Models\TenantAdmin;
 use App\Support\Security\PasswordGenerator;
 use App\Support\Tenancy\CurrentTenant;
-use App\Models\PartnerCompany;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
@@ -37,7 +38,8 @@ class StudentController extends Controller
             'email' => ['required', 'email', 'max:255', 'unique:tenant.students,email'],
             'password' => ['nullable', 'string', 'min:8'],
             'program' => ['nullable', 'string', 'max:255'],
-            'required_hours' => ['required', 'numeric', 'min:1'],
+            'course_id' => ['nullable', 'exists:tenant.courses,id'],
+            'required_hours' => ['nullable', 'numeric', 'min:1', 'max:9999'],
             'status' => ['required', Rule::in(['pending', 'accepted', 'deployed', 'completed'])],
             'partner_company_id' => ['nullable', 'integer', 'exists:tenant.partner_companies,id'],
         ]);
@@ -51,6 +53,8 @@ class StudentController extends Controller
             $data['partner_company_id'] ?? null,
             $data['status']
         );
+
+        $data = $this->applyCourseAndHourDefaults($data, $tenant->settings ?? []);
 
         $student = Student::query()->create(array_merge($data, [
             'password' => $plainPassword,
@@ -71,7 +75,7 @@ class StudentController extends Controller
             $tenant,
             'admin.dashboard',
             ['section' => 'students'],
-            'Student added and credentials emailed.'
+            'Student added and portal credentials emailed.'
         );
     }
 
@@ -88,7 +92,8 @@ class StudentController extends Controller
             'email' => ['required', 'email', 'max:255', Rule::unique('tenant.students', 'email')->ignore($student->getKey())],
             'password' => ['nullable', 'string', 'min:8'],
             'program' => ['nullable', 'string', 'max:255'],
-            'required_hours' => ['required', 'numeric', 'min:1'],
+            'course_id' => ['nullable', 'exists:tenant.courses,id'],
+            'required_hours' => ['nullable', 'numeric', 'min:1', 'max:9999'],
             'completed_hours' => ['required', 'numeric', 'min:0'],
             'status' => ['required', Rule::in(['pending', 'accepted', 'deployed', 'completed'])],
             'partner_company_id' => ['nullable', 'integer', 'exists:tenant.partner_companies,id'],
@@ -107,6 +112,7 @@ class StudentController extends Controller
             unset($data['password']);
         }
 
+        $data = $this->applyCourseAndHourDefaults($data, $tenant->settings ?? []);
         $data['suspended_at'] = $data['is_active'] ? null : now();
         $data['email_verified_at'] = $request->boolean('email_verified')
             ? ($student->email_verified_at ?? now())
@@ -121,7 +127,7 @@ class StudentController extends Controller
             $tenant,
             'admin.dashboard',
             ['section' => 'students'],
-            'Student updated.'
+            'Student record updated.'
         );
     }
 
@@ -136,9 +142,33 @@ class StudentController extends Controller
 
         if ($emailTaken) {
             throw ValidationException::withMessages([
-                'email' => 'This email is already being used by another tenant account.',
+                'email' => 'This email is already being used by another college portal account.',
             ]);
         }
+    }
+
+    protected function applyCourseAndHourDefaults(array $data, array $settings): array
+    {
+        $allowOverride = (bool) ($settings['allow_student_hour_override'] ?? false);
+        $defaultHours = (float) ($settings['default_ojt_hours'] ?? 486);
+
+        if (! empty($data['course_id'])) {
+            $course = Course::query()->find($data['course_id']);
+
+            if ($course) {
+                if (! $allowOverride || blank($data['required_hours'] ?? null)) {
+                    $data['required_hours'] = $course->required_ojt_hours;
+                }
+
+                $data['program'] = $course->code;
+            }
+        }
+
+        if (blank($data['required_hours'] ?? null)) {
+            $data['required_hours'] = $defaultHours;
+        }
+
+        return $data;
     }
 
     protected function ensureCompanyHasCapacity(?int $companyId, string $status, ?int $ignoreStudentId = null): void
@@ -157,7 +187,7 @@ class StudentController extends Controller
 
         if ($occupiedSlots >= $company->intern_slot_limit) {
             throw ValidationException::withMessages([
-                'partner_company_id' => 'This company has already reached its internship slot limit.',
+                'partner_company_id' => 'This partner organization has already reached its OJT slot limit.',
             ]);
         }
     }

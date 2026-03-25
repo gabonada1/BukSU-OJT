@@ -5,8 +5,10 @@ use App\Http\Controllers\OjtHourLogController;
 use App\Http\Controllers\PartnerCompanyController;
 use App\Http\Controllers\StudentDashboardController;
 use App\Http\Controllers\StudentController;
+use App\Http\Controllers\CourseController;
 use App\Http\Controllers\TenantProfileController;
 use App\Http\Controllers\TenantRegistrationController;
+use App\Http\Controllers\TenantRbacController;
 use App\Http\Controllers\TenantUserManagementController;
 use App\Http\Controllers\StudentRequirementController;
 use App\Http\Controllers\SupervisorController;
@@ -15,34 +17,39 @@ use App\Http\Controllers\TenantAuthController;
 use App\Http\Controllers\TenantDashboardController;
 use Illuminate\Support\Facades\Route;
 
-$loginRoles = ['student', 'supervisor'];
+$loginRoles = ['admin', 'student', 'supervisor'];
 
 $registerTenantRoutes = function (string $namePrefix) use ($loginRoles): void {
-    Route::middleware('guest:tenant_admin,supervisor,student')->group(function () use ($loginRoles, $namePrefix) {
-        Route::get('/login', [TenantAuthController::class, 'admin'])->name("{$namePrefix}login.default");
-        Route::post('/login', [TenantAuthController::class, 'storeAdmin'])->name("{$namePrefix}login.default.store");
-        Route::get('/login/{role}', [TenantAuthController::class, 'create'])
-            ->whereIn('role', $loginRoles)
-            ->name("{$namePrefix}login");
-        Route::post('/login/{role}', [TenantAuthController::class, 'store'])
-            ->whereIn('role', $loginRoles)
-            ->name("{$namePrefix}login.store");
+    Route::get('/login', [TenantAuthController::class, 'admin'])->name("{$namePrefix}login.default");
+    Route::post('/login', [TenantAuthController::class, 'storeAdmin'])->name("{$namePrefix}login.default.store");
+    Route::get('/{role}/login', [TenantAuthController::class, 'create'])
+        ->whereIn('role', $loginRoles)
+        ->name("{$namePrefix}login");
+    Route::post('/{role}/login', [TenantAuthController::class, 'store'])
+        ->whereIn('role', $loginRoles)
+        ->name("{$namePrefix}login.store");
+
+    Route::middleware('guest:tenant_admin,supervisor,student')->group(function () use ($namePrefix) {
         Route::get('/register', [TenantRegistrationController::class, 'create'])->name("{$namePrefix}register.create");
         Route::post('/register', [TenantRegistrationController::class, 'store'])->name("{$namePrefix}register.store");
         Route::get('/register/verify/{token}', [TenantRegistrationController::class, 'verify'])->name("{$namePrefix}register.verify");
     });
 
-    Route::middleware('auth:tenant_admin,supervisor,student')->group(function () use ($namePrefix) {
-        Route::post('/logout', [TenantAuthController::class, 'destroy'])->name("{$namePrefix}logout");
-    });
-
-    Route::middleware(['auth:tenant_admin,supervisor,student', 'tenant.account'])->group(function () use ($namePrefix) {
-        Route::get('/profile', [TenantProfileController::class, 'show'])->name("{$namePrefix}profile.show");
-        Route::patch('/profile', [TenantProfileController::class, 'update'])->name("{$namePrefix}profile.update");
-        Route::put('/profile/password', [TenantProfileController::class, 'updatePassword'])->name("{$namePrefix}profile.password.update");
-    });
-
     Route::middleware(['auth:tenant_admin', 'tenant.account'])->group(function () use ($namePrefix) {
+        Route::post('/admin/logout', [TenantAuthController::class, 'destroy'])
+            ->defaults('role', 'admin')
+            ->name("{$namePrefix}admin.logout");
+        Route::get('/admin/profile', [TenantProfileController::class, 'show'])->defaults('role', 'admin')->name("{$namePrefix}admin.profile.show");
+        Route::patch('/admin/profile', [TenantProfileController::class, 'update'])->defaults('role', 'admin')->name("{$namePrefix}admin.profile.update");
+        Route::put('/admin/profile/password', [TenantProfileController::class, 'updatePassword'])->defaults('role', 'admin')->name("{$namePrefix}admin.profile.password.update");
+        Route::post('/admin/profile/branding-settings', [TenantProfileController::class, 'saveBrandingSettings'])->defaults('role', 'admin')->name("{$namePrefix}admin.profile.branding-settings");
+        Route::post('/admin/profile/ojt-settings', [TenantProfileController::class, 'saveOjtSettings'])->defaults('role', 'admin')->name("{$namePrefix}admin.profile.ojt-settings");
+        Route::get('/admin/rbac', [TenantRbacController::class, 'index'])->name("{$namePrefix}admin.rbac.index");
+        Route::post('/admin/rbac', [TenantRbacController::class, 'update'])->name("{$namePrefix}admin.rbac.update");
+        Route::post('/admin/rbac/reset', [TenantRbacController::class, 'reset'])->name("{$namePrefix}admin.rbac.reset");
+        Route::post('/courses', [CourseController::class, 'store'])->name("{$namePrefix}courses.store");
+        Route::patch('/courses/{course}', [CourseController::class, 'update'])->name("{$namePrefix}courses.update");
+        Route::delete('/courses/{course}', [CourseController::class, 'destroy'])->name("{$namePrefix}courses.destroy");
         Route::get('/admin/dashboard', TenantDashboardController::class)->name("{$namePrefix}admin.dashboard");
         Route::post('/admin/companies', [PartnerCompanyController::class, 'store'])->name("{$namePrefix}admin.companies.store");
         Route::patch('/admin/companies/{company}', [PartnerCompanyController::class, 'update'])->name("{$namePrefix}admin.companies.update");
@@ -62,24 +69,28 @@ $registerTenantRoutes = function (string $namePrefix) use ($loginRoles): void {
     });
 
     Route::middleware(['auth:supervisor', 'tenant.account'])->group(function () use ($namePrefix) {
+        Route::post('/supervisor/logout', [TenantAuthController::class, 'destroy'])
+            ->defaults('role', 'supervisor')
+            ->name("{$namePrefix}supervisor.logout");
+        Route::get('/supervisor/profile', [TenantProfileController::class, 'show'])->defaults('role', 'supervisor')->name("{$namePrefix}supervisor.profile.show");
+        Route::patch('/supervisor/profile', [TenantProfileController::class, 'update'])->defaults('role', 'supervisor')->name("{$namePrefix}supervisor.profile.update");
+        Route::put('/supervisor/profile/password', [TenantProfileController::class, 'updatePassword'])->defaults('role', 'supervisor')->name("{$namePrefix}supervisor.profile.password.update");
         Route::get('/supervisor/dashboard', SupervisorDashboardController::class)->name("{$namePrefix}supervisor.dashboard");
     });
 
     Route::middleware(['auth:student', 'tenant.account'])->group(function () use ($namePrefix) {
+        Route::post('/student/logout', [TenantAuthController::class, 'destroy'])
+            ->defaults('role', 'student')
+            ->name("{$namePrefix}student.logout");
+        Route::get('/student/profile', [TenantProfileController::class, 'show'])->defaults('role', 'student')->name("{$namePrefix}student.profile.show");
+        Route::patch('/student/profile', [TenantProfileController::class, 'update'])->defaults('role', 'student')->name("{$namePrefix}student.profile.update");
+        Route::put('/student/profile/password', [TenantProfileController::class, 'updatePassword'])->defaults('role', 'student')->name("{$namePrefix}student.profile.password.update");
         Route::get('/student/dashboard', StudentDashboardController::class)->name("{$namePrefix}student.dashboard");
         Route::post('/student/applications', [InternshipApplicationController::class, 'storeStudent'])->name("{$namePrefix}student.applications.store");
         Route::post('/student/requirements', [StudentRequirementController::class, 'storeStudent'])->name("{$namePrefix}student.requirements.store");
     });
 };
 
-Route::middleware('tenant')->prefix('/tenants/{tenant}')->group(function () use ($registerTenantRoutes) {
-    Route::get('/', fn () => redirect()->route('tenant.login.default', [
-        'tenant' => request()->route('tenant'),
-    ]))->name('tenant.home');
-
-    $registerTenantRoutes('tenant.');
-});
-
 Route::middleware(['tenant.domain', 'tenant'])->group(function () use ($registerTenantRoutes) {
-    $registerTenantRoutes('tenant.domain.');
+    $registerTenantRoutes('tenant.');
 });

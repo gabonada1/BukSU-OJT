@@ -1,135 +1,134 @@
-# BukSU Internship / Practicum Placement System
+# BukSU Practicum Portal
 
-> Auto-generated project documentation. This file is refreshed by `php artisan docs:generate-project` and automatically updates when tenant records are created, updated, or deleted through the application.
+> Auto-generated project documentation. This file is refreshed by `php artisan docs:generate-project` and automatically updates when college records are created, updated, or deleted through the application.
 
 ## 1. Project Summary
 
-The BukSU Internship / Practicum Placement System is a multitenant Laravel application that separates a **central application** from the **tenant application**.
+The BukSU Practicum Portal is a multitenant Laravel application that separates the **University Administration application** from each **college portal**.
 
-- The **central application** runs with no tenant context and is used by the BukSU superadmin to manage tenants, plans, domains, and provisioning.
-- The **tenant application** runs in tenant context and is used by each college for practicum operations, role-based access, and tenant-specific records.
+- The **University Administration application** runs with no tenant context and is used by the BukSU University Admin to manage colleges, license tiers, domains, and registration.
+- Each **college portal** runs in tenant context and is used by each college for practicum operations, role-based access, and college-specific records.
 
 ## 2. Architecture
 
-### Central Application
+### University Administration Application
 
 - Uses the central database: `central` with central connection `central`.
 - Main responsibilities:
-- Authenticate the central superadmin.
-- Create and register tenant colleges.
-- Generate and assign subdomains/domains.
-- Create tenant databases and launch tenant migrations.
-- Maintain the tenant directory and launch links.
+- Authenticate the BukSU University Admin.
+- Create and register college portals.
+- Approve college applications and assign tenant access domains.
+- Create college databases and launch college migrations.
+- Maintain the college directory and launch links.
 
-### Tenant Application
+### College Portal Application
 
-- Uses the tenant connection `tenant` after tenant resolution.
+- Uses the tenant connection `tenant` after college resolution.
 - Main responsibilities:
-- Authenticate tenant admins, supervisors, and students.
-- Manage partner companies, students, requirements, and OJT hour logs.
-- Render tenant dashboards for each role.
+- Authenticate internship coordinators, company supervisors, and students.
+- Manage partner companies, student applications, forms and requirements, progress reports, and evaluation workflows.
+- Render college dashboards for each role.
 
 ## 3. Databases
 
 - Central database connection: `central`.
 - Tenant database connection: `tenant`.
-- Base domain for generated tenant subdomains: `buksu.test`.
-- Central domains: `127.0.0.1`, `localhost`, `buksu.test`.
+- Base domain for generated college subdomains: `buksu.test`.
+- Central domains: `127.0.0.1`, `localhost`, `lvh.me`.
 
 ### Central Database Stores
 
-- Tenant registry and metadata
-- Central superadmin accounts
+- College registry and metadata
+- Approved tenant domain records
+- BukSU University Admin accounts
 - Shared app-level configuration
 
-### Tenant Database Stores
+### College Portal Database Stores
 
-- Tenant admins
-- Supervisors
+- Internship coordinators
+- Company supervisors
 - Students
 - Partner companies
-- Requirements
-- OJT hour logs
+- Student applications
+- Forms and requirements
+- Progress and hour logs
+- Evaluation records
 
 ## 4. Authentication and Roles
 
 ### Central Role
 
-- Superadmin
-- Login: `/central/login` on a central domain such as `127.0.0.1` or `localhost`.
+- BukSU University Admin
+- Login: `/central/login` on a central domain such as `lvh.me`, `127.0.0.1`, or `localhost`.
 
-### Tenant Roles
+### College Portal Roles
 
-- Tenant Admin: manages companies, students, supervisors, requirements, and OJT tracking.
-- Supervisor: views assigned students and practicum activity.
-- Student: views placement, requirement status, and OJT progress.
-- Shared tenant login: `/tenants/{tenant}/login` or `/login` on a tenant domain.
+- College Admin / Internship Coordinator: manages partner companies, reviews submissions, assigns students, tracks OJT hours, and reviews evaluations.
+- Company Supervisor: accepts or rejects assigned students, logs attendance or hours, submits evaluation forms, and validates student reports.
+- Student: views partner companies, applies for internship slots, uploads requirements, submits reports, and tracks OJT progress.
+- Shared college portal login: `/login` on a tenant hostname such as `technology.lvh.me:8000`.
 
 ## 5. Route Structure
 
 - `routes/web.php`: top-level entry resolver.
 - `routes/central.php`: central application routes.
-- `routes/tenant.php`: tenant application routes.
+- `routes/tenant.php`: college portal application routes.
 
 ### Important Central Routes
 
 - `GET /` -> central app entry resolver
-- `GET /central/login` -> superadmin login page
-- `GET /central/dashboard` -> superadmin dashboard
-- `POST /central/tenants` -> create a new tenant and subdomain
+- `GET /central/login` -> University Administration login page
+- `GET /central/dashboard` -> University Administration dashboard
+- `POST /central/tenants` -> register a new college and its access metadata
 
 ### Important Tenant Routes
 
-- `GET /tenants/{tenant}` -> tenant app entry
-- `GET /tenants/{tenant}/login` -> tenant login page
-- `GET /tenants/{tenant}/admin/dashboard` -> tenant admin dashboard
-- `GET /tenants/{tenant}/supervisor/dashboard` -> supervisor dashboard
-- `GET /tenants/{tenant}/student/dashboard` -> student dashboard
-- `GET /login` on a tenant domain -> tenant login page
+- `GET /` on a tenant hostname -> college portal entry
+- `GET /login` on a tenant hostname -> college portal login page
+- `GET /admin/dashboard` on a tenant hostname -> internship coordinator dashboard
+- `GET /supervisor/dashboard` on a tenant hostname -> company supervisor dashboard
+- `GET /student/dashboard` on a tenant hostname -> student dashboard
 
 ## 6. Provisioning Flow
 
-When the superadmin creates a new tenant from the central dashboard, the application:
+When the BukSU University Admin registers a new college from the central dashboard, the application:
 
-1. Saves the tenant metadata in the central database.
-2. Generates the tenant domain from `subdomain + base domain`.
-3. Creates the tenant database if it does not yet exist.
-4. Runs tenant migrations on the new database.
-5. Creates the first tenant admin account.
+1. Saves the college metadata in the central database.
+2. Stores any approved direct-access domains in the central domain registry.
+3. Creates the college database if it does not yet exist.
+4. Runs college migrations on the new database.
+5. Creates the first internship coordinator account.
 6. Refreshes this project documentation file automatically.
 
 ## 7. Current Managed Tenants
 
-| Name | Slug | Plan | Subdomain | Domain | Database | Status |
-| --- | --- | --- | --- | --- | --- | --- |
-| automative | automative | PRO | auto | auto.buksu.test | buksu_automotive | Active |
-| College of Technologies | college-of-technologies | PREMIUM | technology | technology.buksu.test | buksu_college_of_technologies | Active |
-| Edgar | edgar | PRO | edgar | edgar.buksu.test | buksu_edgar | Active |
-| EMC | emc | PREMIUM | emc | emc.buksu.test | buksu_emc | Active |
-| madam | madam | PREMIUM | madam | madam.buksu.test | buksu_madam | Active |
-| renzo | renzo | PREMIUM | renzo | renzo.buksu.test | renzo | Active |
-| Renzo Gabonada | renzo-gabonada | PREMIUM | cot | cot.buksu.test | buksu_cot | Active |
+| College | Code | License Tier | Approved Domains | Database | Status |
+| --- | --- | --- | --- | --- | --- |
+| College of Business | COLLEG | PRO | cob.lvh.me, cob, colleg.lvh.me | buksu_college_of_business | Active |
+| College of Nursing | CON | PREMIUM | nursing, con.lvh.me, nursing.lvh.me | buksu_college_of_nursing | Inactive |
+| College of Technology | COT | PREMIUM | n/a | buksu_college_of_technology | Active |
 
 ## 8. Seeded Local Credentials
 
-### Central Superadmin
+### BukSU University Admin
 
 - Email: `superadmin@buksu.test`
 - Password: defined by `CENTRAL_SUPERADMIN_PASSWORD` in `.env`
 
-### Default Tenant Demo Accounts
+### Default College Demo Accounts
 
-- Admin: `admin@technology.buksu.test` / `password123`
-- Supervisor: `supervisor@technology.buksu.test` / `password123`
-- Student: `student@technology.buksu.test` / `password123`
+- Internship Coordinator: `admin@technology.lvh.me` / `password123`
+- Company Supervisor: `supervisor@technology.lvh.me` / `password123`
+- Student: `student@technology.lvh.me` / `password123`
 
 ## 9. Local Development
 
 ### XAMPP Workflow
 
 - Start Apache and MySQL in XAMPP.
-- Open the central app at `http://localhost/buksu-practicum/central/login`.
-- Open tenant apps with `http://localhost/buksu-practicum/tenants/{tenant}/login`.
+- Start the app with `php artisan serve --host=127.0.0.1 --port=8000`.
+- Open the central app at `http://lvh.me:8000/central/login`.
+- Open college portals with `http://technology.lvh.me:8000/login` or another tenant hostname.
 - Run `npm run build` only when frontend assets change.
 
 ### Maintenance Commands
@@ -137,8 +136,8 @@ When the superadmin creates a new tenant from the central dashboard, the applica
 ```bash
 php artisan migrate
 php artisan db:seed
-php artisan tenants:migrate college-of-technologies
-php artisan tenants:seed college-of-technologies
+php artisan tenants:migrate 1
+php artisan tenants:seed 1
 php artisan docs:generate-project
 npm run build
 ```
@@ -147,14 +146,14 @@ npm run build
 
 - This file is generated at: `docs/PROJECT_DOCUMENTATION.md`.
 - Manual refresh command: `php artisan docs:generate-project`.
-- Automatic refresh happens whenever a tenant record is saved or deleted through the application.
+- Automatic refresh happens whenever a college record is saved or deleted through the application.
 
 ## 11. Key Files
 
 - Central dashboard controller: `app/Http/Controllers/Central/CentralDashboardController.php`
 - Central provisioning controller: `app/Http/Controllers/Central/TenantProvisionController.php`
 - Central auth controller: `app/Http/Controllers/Central/CentralAuthController.php`
-- Tenant auth controller: `app/Http/Controllers/TenantAuthController.php`
+- College portal auth controller: `app/Http/Controllers/TenantAuthController.php`
 - Tenancy config: `config/tenancy.php`
 - Central routes: `routes/central.php`
 - Tenant routes: `routes/tenant.php`

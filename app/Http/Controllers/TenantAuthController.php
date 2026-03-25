@@ -10,100 +10,69 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class TenantAuthController extends Controller
 {
-    public function admin(CurrentTenant $currentTenant): View
+    public function admin(CurrentTenant $currentTenant): View|RedirectResponse
     {
-        $tenant = $currentTenant->tenant();
-
-        abort_unless($tenant, 404);
-
-        return view('tenant.auth.login', [
-            'tenant' => $tenant,
-            'pageTitle' => 'Login | '.config('app.name', 'BukSU Practicum'),
-            'loginAction' => $this->loginAction($tenant),
-            'registerUrl' => request()->routeIs('tenant.domain.*')
-                ? route('tenant.domain.register.create')
-                : route('tenant.register.create', $tenant),
-        ]);
+        return $this->renderLoginPage($currentTenant, null);
     }
 
     public function storeAdmin(Request $request, CurrentTenant $currentTenant): RedirectResponse
     {
-        $tenant = $currentTenant->tenant();
-
-        abort_unless($tenant, 404);
-
         $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required', 'string'],
         ]);
 
-        $role = $this->roleForEmail($request->string('email')->toString());
+        $role = $this->normalizeRole($request->string('role')->toString());
+
+        if ($role === 'admin' && ! $request->filled('role')) {
+            $role = $this->roleForEmail($request->string('email')->toString()) ?? '';
+        }
 
         if (! $role) {
             throw ValidationException::withMessages([
-                'email' => 'No account was found for this email in the selected tenant.',
+                'email' => 'No account was found for this email in the selected college portal.',
             ]);
         }
 
-        $guard = $this->guardForRole($role);
+        $this->scopeSessionToRole($request, $currentTenant, $role);
 
-        if (! Auth::guard($guard)->attempt($request->only('email', 'password'), $request->boolean('remember'))) {
-            throw ValidationException::withMessages([
-                'email' => 'The provided credentials do not match our records.',
-            ]);
-        }
-
-        $authenticatedUser = Auth::guard($guard)->user();
-
-        if (! $this->canAccessPortal($authenticatedUser, $role)) {
-            Auth::guard($guard)->logout();
-
-            throw ValidationException::withMessages([
-                'email' => $this->blockedMessage($role),
-            ]);
-        }
-
-        $request->session()->regenerate();
-        $request->session()->put("tenant_context.{$guard}", $tenant->slug);
-
-        return redirect()->to($this->dashboardPath($role, $tenant->matchesDomain($request->getHost()), $tenant->slug));
+        return $this->authenticateForRole($request, $currentTenant, $role);
     }
 
-    public function create(CurrentTenant $currentTenant, string $role): View
+    public function create(CurrentTenant $currentTenant, string $role): View|RedirectResponse
     {
-        return redirect()->to($this->loginPagePath($currentTenant->tenant()?->matchesDomain(request()->getHost()) ?? false, $currentTenant->tenant()?->slug));
+        return $this->renderLoginPage($currentTenant, $this->normalizeRole($role));
     }
 
     public function store(Request $request, CurrentTenant $currentTenant, string $role): RedirectResponse
     {
-        return $this->storeAdmin($request, $currentTenant);
+        $normalizedRole = $this->normalizeRole($role);
+        $this->scopeSessionToRole($request, $currentTenant, $normalizedRole);
+
+        return $this->authenticateForRole($request, $currentTenant, $normalizedRole);
     }
 
     public function destroy(Request $request): RedirectResponse
     {
-        foreach (['tenant_admin', 'supervisor', 'student'] as $guard) {
-            if (Auth::guard($guard)->check()) {
-                Auth::guard($guard)->logout();
-                $request->session()->forget("tenant_context.{$guard}");
+        $role = $this->normalizeRole((string) $request->route('role', ''));
+        $guard = $role ? $this->guardForRole($role) : null;
+
+        foreach (array_filter([$guard]) ?: ['tenant_admin', 'supervisor', 'student'] as $logoutGuard) {
+            if (Auth::guard($logoutGuard)->check()) {
+                Auth::guard($logoutGuard)->logout();
+                $request->session()->forget("tenant_context.{$logoutGuard}");
             }
         }
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        if (! in_array($request->getHost(), config('tenancy.central_domains', []), true)) {
-            return redirect('/login');
-        }
-
-        $tenant = app(CurrentTenant::class)->tenant();
-
-        return redirect()->route('tenant.login.default', [
-            'tenant' => $tenant?->slug ?? config('tenancy.default_tenant_slug'),
-        ]);
+        return redirect()->to($this->loginPagePath($role ?: 'admin'));
     }
 
     protected function guardForRole(string $role): string
@@ -115,15 +84,13 @@ class TenantAuthController extends Controller
         };
     }
 
-    protected function loginAction($tenant): string
+    protected function loginAction($tenant, ?string $role): string
     {
-        if (request()->routeIs('tenant.domain.*')) {
-            return route('tenant.domain.login.default.store');
+        if (! $role) {
+            return route('tenant.login.default.store');
         }
 
-        return route('tenant.login.default.store', [
-            'tenant' => $tenant,
-        ]);
+        return route('tenant.login.store', ['role' => $role]);
     }
 
     protected function roleForEmail(string $email): ?string
@@ -160,34 +127,99 @@ class TenantAuthController extends Controller
     {
         return match ($role) {
             'student' => 'This student account is suspended or still waiting for email verification.',
-            'supervisor' => 'This teacher account is suspended or still waiting for email verification.',
-            default => 'This admin account is suspended. Please contact the superadmin.',
+            'supervisor' => 'This company supervisor account is suspended or still waiting for email verification.',
+            default => 'This internship coordinator account is suspended. Please contact the BukSU University Admin.',
         };
     }
 
-    protected function dashboardPath(string $role, bool $isDomain, ?string $slug): string
+    protected function renderLoginPage(CurrentTenant $currentTenant, ?string $role): View|RedirectResponse
     {
-        if ($isDomain) {
-            return match ($role) {
-                'admin' => route('tenant.domain.admin.dashboard'),
-                'supervisor' => route('tenant.domain.supervisor.dashboard'),
-                default => route('tenant.domain.student.dashboard'),
-            };
+        $tenant = $currentTenant->tenant();
+
+        abort_unless($tenant, 404);
+
+        $portalTitle = data_get($tenant->settings, 'branding.portal_title', config('app.name', 'BukSU Practicum Portal'));
+
+        if ($role && Auth::guard($this->guardForRole($role))->check()) {
+            return redirect()->to($this->dashboardPath($role));
         }
 
+        return view('tenant.auth.login', [
+            'tenant' => $tenant,
+            'pageTitle' => 'College Portal | '.$portalTitle,
+            'selectedLoginRole' => $role,
+            'loginAction' => $this->loginAction($tenant, $role),
+            'registerUrl' => route('tenant.register.create'),
+        ]);
+    }
+
+    protected function authenticateForRole(Request $request, CurrentTenant $currentTenant, string $role): RedirectResponse
+    {
+        $tenant = $currentTenant->tenant();
+
+        abort_unless($tenant, 404);
+
+        $request->validate([
+            'email' => ['required', 'email'],
+            'password' => ['required', 'string'],
+        ]);
+
+        $guard = $this->guardForRole($role);
+
+        if (! Auth::guard($guard)->attempt($request->only('email', 'password'), $request->boolean('remember'))) {
+            throw ValidationException::withMessages([
+                'email' => 'The provided credentials do not match our records.',
+            ]);
+        }
+
+        $authenticatedUser = Auth::guard($guard)->user();
+
+        if (! $this->canAccessPortal($authenticatedUser, $role)) {
+            Auth::guard($guard)->logout();
+
+            throw ValidationException::withMessages([
+                'email' => $this->blockedMessage($role),
+            ]);
+        }
+
+        $request->session()->regenerate();
+        $request->session()->put("tenant_context.{$guard}", (string) $tenant->getRouteKey());
+
+        return redirect()->to($this->dashboardPath($role));
+    }
+
+    protected function dashboardPath(string $role): string
+    {
         return match ($role) {
-            'admin' => route('tenant.admin.dashboard', $slug),
-            'supervisor' => route('tenant.supervisor.dashboard', $slug),
-            default => route('tenant.student.dashboard', $slug),
+            'admin' => route('tenant.admin.dashboard'),
+            'supervisor' => route('tenant.supervisor.dashboard'),
+            default => route('tenant.student.dashboard'),
         };
     }
 
-    protected function loginPagePath(bool $isDomain, ?string $slug): string
+    protected function loginPagePath(string $role = 'admin'): string
     {
-        if ($isDomain) {
-            return route('tenant.domain.login.default');
-        }
+        return $role === 'admin'
+            ? route('tenant.login.default')
+            : route('tenant.login', ['role' => $role]);
+    }
 
-        return route('tenant.login.default', $slug ?? config('tenancy.default_tenant_slug'));
+    protected function normalizeRole(string $role): string
+    {
+        return in_array($role, ['admin', 'supervisor', 'student'], true) ? $role : 'admin';
+    }
+
+    protected function scopeSessionToRole(Request $request, CurrentTenant $currentTenant, string $role): void
+    {
+        $baseCookie = Str::slug((string) config('app.name', 'laravel')).'-session';
+        $cookie = $baseCookie;
+
+        $request->session()->setName($cookie);
+
+        config([
+            'session.cookie' => $cookie,
+            'session.path' => '/',
+            'session.domain' => null,
+        ]);
     }
 }

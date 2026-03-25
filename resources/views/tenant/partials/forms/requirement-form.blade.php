@@ -5,9 +5,7 @@
     $isEditing = $mode === 'edit' && filled($editingRequirement ?? null);
     $requirementRecord = $editingRequirement ?? null;
     $action = $isEditing
-        ? (request()->routeIs('tenant.domain.*')
-            ? route('tenant.domain.admin.requirements.update', $requirementRecord)
-            : route('tenant.admin.requirements.update', ['tenant' => $tenant, 'requirement' => $requirementRecord]))
+        ? route('tenant.admin.requirements.update', ['requirement' => $requirementRecord])
         : $formActions['requirements'];
 @endphp
 
@@ -15,7 +13,7 @@
 <article class="card">
 @endunless
     @if ($showHeading)
-        <h2>{{ $isEditing ? 'Edit Requirement' : 'New Requirement' }}</h2>
+        <h2>{{ $isEditing ? 'Edit Practicum Requirement' : 'New Practicum Requirement' }}</h2>
     @endif
     <form method="POST" action="{{ $action }}" enctype="multipart/form-data">
         @csrf
@@ -30,7 +28,7 @@
                 @endforeach
             </select>
         </label>
-        <label>Requirement Name <input type="text" name="requirement_name" value="{{ old('requirement_name', $requirementRecord?->requirement_name ?? 'Resume') }}" required></label>
+        <label>Practicum Requirement Name <input type="text" name="requirement_name" value="{{ old('requirement_name', $requirementRecord?->requirement_name ?? 'Resume') }}" required></label>
         <label>
             Status
             <select name="status" required>
@@ -41,8 +39,8 @@
         </label>
         <label>Document File <input type="file" name="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"></label>
         <label>Notes <textarea name="notes" placeholder="Feedback, comments, or revision instructions">{{ old('notes', $requirementRecord?->notes) }}</textarea></label>
-        <label>Admin Feedback <textarea name="feedback" placeholder="Approved, rejected, or requires revision notes">{{ old('feedback', $requirementRecord?->feedback) }}</textarea></label>
-        <button type="submit" class="small-button">{{ $isEditing ? 'Save Changes' : 'Save Requirement' }}</button>
+        <label>Coordinator Feedback <textarea name="feedback" placeholder="Approved, rejected, or requires revision notes">{{ old('feedback', $requirementRecord?->feedback) }}</textarea></label>
+        <button type="submit" class="small-button">{{ $isEditing ? 'Save Changes' : 'Save Practicum Requirement' }}</button>
     </form>
 @unless ($embedded)
 </article>

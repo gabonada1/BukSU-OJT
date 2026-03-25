@@ -26,7 +26,7 @@ class StudentCredentialsMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Your BukSU practicum student account is ready',
+            subject: 'Your BukSU Practicum Portal student account is ready',
         );
     }
 

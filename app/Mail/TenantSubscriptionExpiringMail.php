@@ -23,7 +23,7 @@ class TenantSubscriptionExpiringMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Tenant subscription reminder: '.$this->tenant->name,
+            subject: 'College portal access reminder: '.$this->tenant->name,
         );
     }
 

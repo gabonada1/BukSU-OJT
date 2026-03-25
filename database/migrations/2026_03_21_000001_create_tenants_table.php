@@ -13,7 +13,6 @@ return new class extends Migration
         Schema::connection($this->connection)->create('tenants', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('slug')->unique();
             $table->string('code')->nullable();
             $table->string('plan')->default('premium');
             $table->string('database');

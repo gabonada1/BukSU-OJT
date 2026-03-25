@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Concerns\InteractsWithTenantRouting;
 use App\Mail\StudentRegistrationVerificationMail;
 use App\Mail\TeacherRegistrationVerificationMail;
+use App\Models\Course;
 use App\Models\Student;
 use App\Models\Supervisor;
 use App\Models\TenantAdmin;
@@ -35,10 +36,18 @@ class TenantRegistrationController extends Controller
             $selectedRole = null;
         }
 
+        $portalTitle = data_get($tenant->settings, 'branding.portal_title', config('app.name', 'BukSU Practicum Portal'));
+
         return view('tenant.auth.register', [
             'tenant' => $tenant,
-            'pageTitle' => 'Register | '.config('app.name', 'BukSU Practicum'),
+            'pageTitle' => 'Register | '.$portalTitle,
             'selectedRole' => $selectedRole,
+            'courses' => Course::active()->get(),
+            'ojtSettings' => [
+                'default_ojt_hours' => $tenant->settings['default_ojt_hours'] ?? 486,
+                'allow_student_hour_override' => $tenant->settings['allow_student_hour_override'] ?? false,
+                'ojt_hours_note' => $tenant->settings['ojt_hours_note'] ?? null,
+            ],
             'registerPageUrl' => $this->tenantRoute($tenant, 'register.create'),
             'registerAction' => $this->tenantRoute($tenant, 'register.store'),
             'loginUrl' => $this->tenantRoute($tenant, 'login.default'),
@@ -55,12 +64,12 @@ class TenantRegistrationController extends Controller
 
         if (! in_array($role, $this->registrationRoles, true)) {
             throw ValidationException::withMessages([
-                'role' => 'Choose whether you are registering as a student or teacher.',
+                'role' => 'Choose whether you are registering as a student or company supervisor.',
             ]);
         }
 
         if ($role === 'student') {
-            $student = $this->registerStudent($request);
+            $student = $this->registerStudent($request, $tenant->settings ?? []);
 
             rescue(function () use ($tenant, $student, $urlGenerator) {
                 Mail::to($student->email)->send(
@@ -72,7 +81,7 @@ class TenantRegistrationController extends Controller
                 $request,
                 $tenant,
                 'login.default',
-                status: 'Student registration received. Please check your email and verify your account before signing in.'
+                status: 'Student registration received. Please check your email and verify your account before signing in to the college portal.'
             );
         }
 
@@ -88,7 +97,7 @@ class TenantRegistrationController extends Controller
             $request,
             $tenant,
             'login.default',
-            status: 'Teacher registration received. Please check your email and verify your account before signing in.'
+            status: 'Company supervisor registration received. Please check your email and verify your account before signing in to the college portal.'
         );
     }
 
@@ -99,7 +108,7 @@ class TenantRegistrationController extends Controller
         abort_unless($tenant, 404);
 
         $student = Student::query()->where('email_verification_token', $token)->first();
-        $message = 'Email verified. You can now sign in to your student dashboard.';
+        $message = 'Email verified. You can now sign in to your student portal.';
 
         if (! $student) {
             $teacher = Supervisor::query()->where('email_verification_token', $token)->firstOrFail();
@@ -108,7 +117,7 @@ class TenantRegistrationController extends Controller
                 'email_verification_token' => null,
             ])->save();
 
-            $message = 'Email verified. You can now sign in to your teacher workspace.';
+            $message = 'Email verified. You can now sign in to your company supervisor workspace.';
         } else {
             $student->forceFill([
                 'email_verified_at' => now(),
@@ -128,26 +137,38 @@ class TenantRegistrationController extends Controller
 
         if ($emailTaken) {
             throw ValidationException::withMessages([
-                'email' => 'This email is already being used by another tenant account.',
+                'email' => 'This email is already being used by another college portal account.',
             ]);
         }
     }
 
-    protected function registerStudent(Request $request): Student
+    protected function registerStudent(Request $request, array $settings): Student
     {
         $data = $request->validate([
             'student_number' => ['required', 'string', 'max:255', 'unique:tenant.students,student_number'],
             'first_name' => ['required', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:tenant.students,email'],
+            'course_id' => ['nullable', 'exists:tenant.courses,id'],
             'program' => ['nullable', 'string', 'max:255'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
 
         $this->ensureEmailIsAvailable($data['email']);
 
+        $requiredHours = (float) ($settings['default_ojt_hours'] ?? 486);
+
+        if (! empty($data['course_id'])) {
+            $course = Course::query()->find($data['course_id']);
+
+            if ($course) {
+                $data['program'] = $course->code;
+                $requiredHours = (float) $course->required_ojt_hours;
+            }
+        }
+
         return Student::query()->create($data + [
-            'required_hours' => 486,
+            'required_hours' => $requiredHours,
             'completed_hours' => 0,
             'status' => 'pending',
             'is_active' => true,

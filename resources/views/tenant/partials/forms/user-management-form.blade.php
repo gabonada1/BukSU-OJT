@@ -4,9 +4,7 @@
     $userRecord = $editingUser ?? null;
     $model = $userRecord['model'] ?? null;
     $action = filled($userRecord)
-        ? (request()->routeIs('tenant.domain.*')
-            ? route('tenant.domain.admin.users.update', ['type' => $userRecord['type'], 'id' => $userRecord['id']])
-            : route('tenant.admin.users.update', ['tenant' => $tenant, 'type' => $userRecord['type'], 'id' => $userRecord['id']]))
+        ? route('tenant.admin.users.update', ['type' => $userRecord['type'], 'id' => $userRecord['id']])
         : '#';
 @endphp
 
@@ -14,7 +12,7 @@
 <article class="card">
 @endunless
     @if ($showHeading)
-        <h2>Edit User</h2>
+        <h2>Edit User RBAC</h2>
     @endif
 
     @if ($userRecord)
@@ -27,7 +25,7 @@
                 Role
                 <select name="role" required>
                     @foreach ($userRoleOptions as $roleOption)
-                        <option value="{{ $roleOption }}" @selected(old('role', $userRecord['role']) === $roleOption)>{{ $roleOption === 'supervisor' ? 'Teacher' : ucfirst($roleOption) }}</option>
+                        <option value="{{ $roleOption }}" @selected(old('role', $userRecord['role']) === $roleOption)>{{ $roleOption === 'admin' ? 'Internship Coordinator' : ($roleOption === 'supervisor' ? 'Company Supervisor' : ucfirst($roleOption)) }}</option>
                     @endforeach
                 </select>
             </label>
@@ -39,7 +37,7 @@
                 </select>
             </label>
             <p class="field-hint">
-                Role changes move the account into the selected tenant role table while preserving the email and password.
+                This RBAC form lets the tenant admin change role and access state inside the current college portal while preserving the user's email and password.
             </p>
             <button type="submit" class="small-button">Save User</button>
         </form>

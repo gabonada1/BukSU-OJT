@@ -26,7 +26,7 @@ class TenantAdminCredentialsMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Your BukSU tenant admin account is ready',
+            subject: 'Your Internship Coordinator account is ready | '.$this->tenant->name,
         );
     }
 

@@ -5,17 +5,25 @@
     $isEditing = $mode === 'edit' && filled($editingSupervisor ?? null);
     $supervisorRecord = $editingSupervisor ?? null;
     $action = $isEditing
-        ? (request()->routeIs('tenant.domain.*')
-            ? route('tenant.domain.admin.supervisors.update', $supervisorRecord)
-            : route('tenant.admin.supervisors.update', ['tenant' => $tenant, 'supervisor' => $supervisorRecord]))
+        ? route('tenant.admin.supervisors.update', ['supervisor' => $supervisorRecord])
         : $formActions['supervisors'];
+    $departmentOptions = collect($courses ?? [])->map(function ($course) {
+        return [
+            'value' => trim($course->code.' - '.$course->name),
+            'label' => trim($course->code.' - '.$course->name),
+        ];
+    });
+    $selectedDepartment = old('department', $supervisorRecord?->department ?? '');
+    $hasDepartmentOptions = $departmentOptions->isNotEmpty();
+    $selectedDepartmentMissing = filled($selectedDepartment)
+        && ! $departmentOptions->contains(fn ($option) => $option['value'] === $selectedDepartment);
 @endphp
 
 @unless ($embedded)
 <article class="card">
 @endunless
     @if ($showHeading)
-        <h2>{{ $isEditing ? 'Edit Supervisor' : 'New Supervisor' }}</h2>
+        <h2>{{ $isEditing ? 'Edit Company Supervisor' : 'New Company Supervisor' }}</h2>
     @endif
     <form method="POST" action="{{ $action }}">
         @csrf
@@ -25,9 +33,24 @@
         <label>Name <input type="text" name="name" value="{{ old('name', $supervisorRecord?->name) }}" required></label>
         <label>Email <input type="email" name="email" value="{{ old('email', $supervisorRecord?->email) }}" required></label>
         <label>Position <input type="text" name="position" value="{{ old('position', $supervisorRecord?->position ?? 'Company Supervisor') }}"></label>
-        <label>Department / Unit <input type="text" name="department" value="{{ old('department', $supervisorRecord?->department ?? 'College of Technology') }}"></label>
+        @if ($hasDepartmentOptions)
+            <label>
+                Department / Unit
+                <select name="department">
+                    <option value="">Select course</option>
+                    @if ($selectedDepartmentMissing)
+                        <option value="{{ $selectedDepartment }}" selected>{{ $selectedDepartment }} (Current)</option>
+                    @endif
+                    @foreach ($departmentOptions as $option)
+                        <option value="{{ $option['value'] }}" @selected($selectedDepartment === $option['value'])>{{ $option['label'] }}</option>
+                    @endforeach
+                </select>
+            </label>
+        @else
+            <label>Department / Unit <input type="text" name="department" value="{{ old('department', $supervisorRecord?->department ?? $tenant->name) }}"></label>
+        @endif
         <label>
-            Company
+            Organization
             <select name="partner_company_id">
                 <option value="">Assign later</option>
                 @foreach ($companies as $company)
@@ -52,7 +75,7 @@
                 </select>
             </label>
         @endif
-        <button type="submit" class="small-button">{{ $isEditing ? 'Save Changes' : 'Save Supervisor' }}</button>
+        <button type="submit" class="small-button">{{ $isEditing ? 'Save Changes' : 'Save Company Supervisor' }}</button>
     </form>
 @unless ($embedded)
 </article>

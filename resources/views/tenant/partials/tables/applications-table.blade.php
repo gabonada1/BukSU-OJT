@@ -7,18 +7,18 @@
 <article class="card">
 @endunless
     @if ($showHeading)
-        <h2>Internship Applications</h2>
+        <h2>Student Applications</h2>
     @endif
     @if ($applications->isEmpty())
-        <p>No internship applications yet.</p>
+        <p>No student applications yet.</p>
     @else
         <table>
-            <thead><tr><th>Student</th><th>Company</th><th>Position</th><th>Status</th><th>Documents</th><th>Action</th></tr></thead>
+            <thead><tr><th>Student</th><th>Organization</th><th>Position</th><th>Status</th><th>Documents</th><th>Action</th></tr></thead>
             <tbody>
                 @foreach ($applications as $application)
                     <tr>
                         <td>{{ $application->student?->full_name ?: 'Unknown student' }}</td>
-                        <td>{{ $application->partnerCompany?->name ?: 'No company' }}</td>
+                        <td>{{ $application->partnerCompany?->name ?: 'No organization' }}</td>
                         <td>{{ $application->position_applied ?: 'Not set' }}</td>
                         <td><span class="badge">{{ strtoupper($application->status) }}</span></td>
                         <td>

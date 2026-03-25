@@ -17,6 +17,7 @@ class CentralSuperadmin extends Authenticatable
         'name',
         'email',
         'password',
+        'settings',
     ];
 
     protected $hidden = [
@@ -28,6 +29,12 @@ class CentralSuperadmin extends Authenticatable
     {
         return [
             'password' => 'hashed',
+            'settings' => 'array',
         ];
+    }
+
+    public function canManageTenants(): bool
+    {
+        return true;
     }
 }

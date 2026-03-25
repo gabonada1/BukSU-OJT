@@ -19,6 +19,7 @@ class Student extends Authenticatable
         'email',
         'password',
         'program',
+        'course_id',
         'required_hours',
         'completed_hours',
         'status',
@@ -56,6 +57,11 @@ class Student extends Authenticatable
     public function partnerCompany(): BelongsTo
     {
         return $this->belongsTo(PartnerCompany::class);
+    }
+
+    public function course(): BelongsTo
+    {
+        return $this->belongsTo(Course::class);
     }
 
     public function requirements(): HasMany

@@ -5,9 +5,7 @@
     $isEditing = $mode === 'edit' && filled($editingCompany ?? null);
     $company = $editingCompany ?? null;
     $action = $isEditing
-        ? (request()->routeIs('tenant.domain.*')
-            ? route('tenant.domain.admin.companies.update', $company)
-            : route('tenant.admin.companies.update', ['tenant' => $tenant, 'company' => $company]))
+        ? route('tenant.admin.companies.update', ['company' => $company])
         : $formActions['companies'];
 @endphp
 
@@ -15,14 +13,14 @@
 <article class="card">
 @endunless
     @if ($showHeading)
-        <h2>{{ $isEditing ? 'Edit Company' : 'New Company' }}</h2>
+        <h2>{{ $isEditing ? 'Edit Partner Organization' : 'New Partner Organization' }}</h2>
     @endif
     <form method="POST" action="{{ $action }}">
         @csrf
         @if ($isEditing)
             @method('PATCH')
         @endif
-        <label>Company Name <input type="text" name="name" value="{{ old('name', $company?->name) }}" required></label>
+        <label>Organization Name <input type="text" name="name" value="{{ old('name', $company?->name) }}" required></label>
         <label>Industry / Type <input type="text" name="industry" value="{{ old('industry', $company?->industry) }}"></label>
         <label>Available Positions <textarea name="available_positions" placeholder="One position per line">{{ old('available_positions', $company?->available_positions) }}</textarea></label>
         <label>Required Documents <textarea name="required_documents" placeholder="Resume&#10;Endorsement Letter&#10;MOA&#10;Clearance">{{ old('required_documents', $company?->required_documents) }}</textarea></label>
@@ -30,8 +28,8 @@
         <label>Contact Person <input type="text" name="contact_person" value="{{ old('contact_person', $company?->contact_person) }}"></label>
         <label>Contact Email <input type="email" name="contact_email" value="{{ old('contact_email', $company?->contact_email) }}"></label>
         <label>Contact Phone <input type="text" name="contact_phone" value="{{ old('contact_phone', $company?->contact_phone) }}"></label>
-        <label>Intern Slot Limit <input type="number" name="intern_slot_limit" min="1" value="{{ old('intern_slot_limit', $company?->intern_slot_limit ?? 10) }}" required></label>
-        <button type="submit" class="small-button">{{ $isEditing ? 'Save Changes' : 'Save Company' }}</button>
+        <label>OJT Slot Limit <input type="number" name="intern_slot_limit" min="1" value="{{ old('intern_slot_limit', $company?->intern_slot_limit ?? 10) }}" required></label>
+        <button type="submit" class="small-button">{{ $isEditing ? 'Save Changes' : 'Save Organization' }}</button>
     </form>
 @unless ($embedded)
 </article>

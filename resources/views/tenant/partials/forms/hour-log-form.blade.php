@@ -5,9 +5,7 @@
     $isEditing = $mode === 'edit' && filled($editingHour ?? null);
     $hourRecord = $editingHour ?? null;
     $action = $isEditing
-        ? (request()->routeIs('tenant.domain.*')
-            ? route('tenant.domain.admin.hours.update', $hourRecord)
-            : route('tenant.admin.hours.update', ['tenant' => $tenant, 'hour' => $hourRecord]))
+        ? route('tenant.admin.hours.update', ['hour' => $hourRecord])
         : $formActions['hours'];
 @endphp
 
@@ -15,7 +13,7 @@
 <article class="card">
 @endunless
     @if ($showHeading)
-        <h2>{{ $isEditing ? 'Edit Hour Log' : 'New Hour Log' }}</h2>
+        <h2>{{ $isEditing ? 'Edit Progress / Hour Log' : 'New Progress / Hour Log' }}</h2>
     @endif
     <form method="POST" action="{{ $action }}">
         @csrf
@@ -40,9 +38,9 @@
                 @endforeach
             </select>
         </label>
-        <label>Supervisor Name <input type="text" name="supervisor_name" value="{{ old('supervisor_name', $hourRecord?->supervisor_name) }}"></label>
+        <label>Company Supervisor Name <input type="text" name="supervisor_name" value="{{ old('supervisor_name', $hourRecord?->supervisor_name) }}"></label>
         <label>Activity <textarea name="activity" required placeholder="Describe the work completed during this shift">{{ old('activity', $hourRecord?->activity) }}</textarea></label>
-        <button type="submit" class="small-button">{{ $isEditing ? 'Save Changes' : 'Save Hour Log' }}</button>
+        <button type="submit" class="small-button">{{ $isEditing ? 'Save Changes' : 'Save Progress Log' }}</button>
     </form>
 @unless ($embedded)
 </article>

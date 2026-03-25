@@ -2,133 +2,99 @@
 
 namespace App\Http\Controllers\Central;
 
-use App\Mail\TenantAdminCredentialsMail;
 use App\Http\Controllers\Controller;
+use App\Mail\TenantActivatedMail;
+use App\Mail\TenantSubscriptionUpdatedMail;
+use App\Models\Student;
+use App\Models\Supervisor;
 use App\Models\Tenant;
 use App\Models\TenantAdmin;
-use App\Support\Security\PasswordGenerator;
+use App\Models\TenantDomain;
 use App\Support\Tenancy\TenantDatabaseManager;
+use App\Support\Tenancy\TenantProvisioner;
 use App\Support\Tenancy\TenantSubscriptionNotifier;
 use App\Support\Tenancy\TenantUrlGenerator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Throwable;
 
 class TenantProvisionController extends Controller
 {
     public function __construct(
         protected TenantDatabaseManager $tenantDatabaseManager,
-        protected PasswordGenerator $passwordGenerator,
+        protected TenantProvisioner $tenantProvisioner,
         protected TenantSubscriptionNotifier $subscriptionNotifier,
-        protected TenantUrlGenerator $urlGenerator,
+        protected TenantUrlGenerator $tenantUrlGenerator,
     ) {
     }
 
     public function store(Request $request): RedirectResponse
     {
+        $this->authorizeTenantManagement();
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'plan' => ['required', Rule::in(['basic', 'pro', 'premium'])],
             'subscription_starts_at' => ['required', 'date'],
             'subscription_expires_at' => ['nullable', 'date', 'after_or_equal:subscription_starts_at'],
-            'subdomain' => ['required', 'alpha_dash', 'max:63', Rule::unique('central.tenants', 'subdomain')],
+            'subdomain' => ['required', 'alpha_dash', 'max:63'],
+            'domain' => ['nullable', 'string', 'max:255'],
             'database' => ['required', 'regex:/^[A-Za-z0-9_]+$/', Rule::unique('central.tenants', 'database')],
+            'admin_name' => ['nullable', 'string', 'max:255'],
             'admin_email' => ['required', 'email', 'max:255'],
             'admin_password' => ['nullable', 'string', 'min:8'],
         ]);
-
-        $slug = Str::slug($validated['name']);
-        $domain = $validated['subdomain'].'.'.config('tenancy.base_domain');
-        $tenantCode = Str::upper(Str::substr(Str::slug($validated['name'], ''), 0, 6));
-        $adminName = $validated['name'].' Admin';
-        $adminPassword = filled($validated['admin_password'] ?? null)
-            ? $validated['admin_password']
-            : $this->passwordGenerator->generate();
-
-        $tenant = null;
+        $domainHosts = $this->resolvedDomainHosts($validated);
+        $this->ensureDomainHostsAreAvailable($domainHosts);
 
         try {
-            $tenant = Tenant::query()->create([
+            $tenant = $this->tenantProvisioner->provision([
                 'name' => $validated['name'],
-                'slug' => $this->uniqueSlug($slug),
-                'code' => $tenantCode,
                 'plan' => $validated['plan'],
                 'subscription_starts_at' => $validated['subscription_starts_at'],
                 'subscription_expires_at' => $validated['subscription_expires_at'] ?? null,
-                'domain' => $domain,
-                'subdomain' => $validated['subdomain'],
+                'domain_hosts' => $domainHosts,
                 'database' => $validated['database'],
-                'db_host' => env('TENANT_DB_HOST', '127.0.0.1'),
-                'db_port' => env('TENANT_DB_PORT', '3306'),
-                'db_username' => env('TENANT_DB_USERNAME', 'root'),
-                'db_password' => env('TENANT_DB_PASSWORD', ''),
-                'is_active' => true,
+                'admin_name' => $validated['admin_name'] ?? null,
+                'admin_email' => $validated['admin_email'],
+                'admin_password' => $validated['admin_password'] ?? null,
                 'settings' => [
                     'provisioned_by' => 'central_superadmin',
-                    'provision_defaults' => [
-                        'generated_code' => $tenantCode,
-                        'generated_admin_name' => $adminName,
-                    ],
                     'branding' => [
-                        'accent' => '#dc2626',
-                        'secondary' => '#ffffff',
+                        'portal_title' => 'BukSU Practicum Portal',
+                        'accent' => '#7B1C2E',
+                        'secondary' => '#F5A623',
+                        'logo_path' => null,
                     ],
                 ],
             ]);
-
-            $this->createTenantDatabase($tenant->database);
-            $this->tenantDatabaseManager->connect($tenant);
-
-            Artisan::call('migrate', [
-                '--database' => config('tenancy.tenant_connection', 'tenant'),
-                '--path' => 'database/migrations/tenant',
-                '--realpath' => false,
-                '--force' => true,
-            ]);
-
-            TenantAdmin::query()->create([
-                'name' => $adminName,
-                'email' => $validated['admin_email'],
-                'password' => $adminPassword,
-                'is_active' => true,
-            ]);
-
-            rescue(function () use ($tenant, $adminName, $validated, $adminPassword) {
-                Mail::to($validated['admin_email'])->send(
-                    new TenantAdminCredentialsMail(
-                        $tenant,
-                        $adminName,
-                        $validated['admin_email'],
-                        $adminPassword,
-                        $this->urlGenerator,
-                    )
-                );
-            }, report: true);
         } catch (Throwable $exception) {
-            if ($tenant?->exists) {
-                rescue(fn () => $tenant->delete(), report: false);
-            }
-
             report($exception);
 
             return back()
                 ->withInput($request->except('admin_password'))
                 ->withErrors([
-                    'provisioning' => 'Tenant provisioning failed. Check that MySQL is running and that your central and tenant database settings in `.env` are correct.',
+                    'provisioning' => 'College registration failed. Check that MySQL is running and that your central and college database settings in `.env` are correct.',
                 ]);
         }
 
-        return redirect()->route('central.dashboard')->with('status', "Tenant {$tenant->name} created successfully.");
+        return redirect()->route('central.dashboard')->with('status', "College {$tenant->name} registered successfully.");
     }
 
     public function update(Request $request, Tenant $tenant): RedirectResponse
     {
+        $this->authorizeTenantManagement();
+
         $wasActive = $tenant->is_active;
+        $oldPlan = $tenant->plan;
+        $oldStartsAt = $tenant->subscription_starts_at?->toDateString();
+        $oldExpiresAt = $tenant->subscription_expires_at?->toDateString();
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -136,7 +102,13 @@ class TenantProvisionController extends Controller
             'subscription_starts_at' => ['required', 'date'],
             'subscription_expires_at' => ['nullable', 'date', 'after_or_equal:subscription_starts_at'],
             'is_active' => ['required', Rule::in(['0', '1'])],
+            'domain_hosts' => ['nullable', 'string', 'max:2000'],
+            'admin_name' => ['nullable', 'string', 'max:255'],
+            'admin_email' => ['required', 'email', 'max:255'],
         ]);
+
+        $domainHosts = $this->normalizedDomainHosts($validated['domain_hosts'] ?? '');
+        $this->ensureDomainHostsAreAvailable($domainHosts, $tenant);
 
         $tenant->update([
             'name' => $validated['name'],
@@ -145,11 +117,14 @@ class TenantProvisionController extends Controller
             'subscription_expires_at' => $validated['subscription_expires_at'] ?? null,
             'is_active' => (bool) $validated['is_active'],
         ]);
+        $this->syncDomainHosts($tenant, $domainHosts);
+        $this->syncTenantAdminContact($tenant, $validated['admin_email'], $validated['admin_name'] ?? null);
 
         if (! $tenant->is_active) {
             rescue(fn () => $this->subscriptionNotifier->sendSuspensionNotice($tenant), report: true);
         } elseif (! $wasActive && $tenant->is_active) {
             rescue(fn () => $this->subscriptionNotifier->clearSuspensionNoticeFlag($tenant), report: true);
+            rescue(fn () => $this->sendActivationNotice($tenant), report: true);
         }
 
         if ($this->subscriptionNotifier->shouldWarnForExpiry($tenant)) {
@@ -161,13 +136,68 @@ class TenantProvisionController extends Controller
             }, report: true);
         }
 
+        if (
+            $oldPlan !== $tenant->plan
+            || $oldStartsAt !== $tenant->subscription_starts_at?->toDateString()
+            || $oldExpiresAt !== $tenant->subscription_expires_at?->toDateString()
+        ) {
+            rescue(fn () => $this->sendSubscriptionUpdatedNotice($tenant), report: true);
+        }
+
         return redirect()
             ->route('central.dashboard', ['section' => 'directory'])
-            ->with('status', "Tenant {$tenant->name} updated successfully.");
+            ->with('status', "College {$tenant->name} updated successfully.");
+    }
+
+    public function updateStatus(Request $request, Tenant $tenant): RedirectResponse
+    {
+        $this->authorizeTenantManagement();
+
+        $validated = $request->validate([
+            'is_active' => ['required', Rule::in(['0', '1'])],
+        ]);
+
+        $tenant->forceFill([
+            'is_active' => (bool) $validated['is_active'],
+        ])->save();
+
+        if ($tenant->is_active) {
+            rescue(fn () => $this->subscriptionNotifier->clearSuspensionNoticeFlag($tenant), report: true);
+            rescue(fn () => $this->sendActivationNotice($tenant), report: true);
+        } else {
+            rescue(fn () => $this->subscriptionNotifier->sendSuspensionNotice($tenant, force: true), report: true);
+        }
+
+        return redirect()
+            ->route('central.dashboard', ['section' => 'directory'])
+            ->with('status', $tenant->name.' is now marked as '.($tenant->is_active ? 'active' : 'suspended').'.');
+    }
+
+    public function notify(Request $request, Tenant $tenant): RedirectResponse
+    {
+        $this->authorizeTenantManagement();
+
+        $validated = $request->validate([
+            'notification' => ['required', Rule::in(['activation', 'suspension', 'subscription'])],
+        ]);
+
+        $sent = match ($validated['notification']) {
+            'activation' => $this->sendActivationNotice($tenant),
+            'subscription' => $this->sendSubscriptionUpdatedNotice($tenant),
+            default => $this->subscriptionNotifier->sendSuspensionNotice($tenant, force: true),
+        };
+
+        return redirect()
+            ->route('central.dashboard', ['section' => 'directory', 'edit' => $tenant->getKey()])
+            ->with('status', $sent
+                ? 'Notification email sent for '.$tenant->name.'.'
+                : 'No notification was sent because the tenant has no active coordinator contact.');
     }
 
     public function destroy(Tenant $tenant): RedirectResponse
     {
+        $this->authorizeTenantManagement();
+
         $tenantName = $tenant->name;
         $databaseName = $tenant->database;
 
@@ -181,21 +211,13 @@ class TenantProvisionController extends Controller
             return redirect()
                 ->route('central.dashboard', ['section' => 'directory'])
                 ->withErrors([
-                    'provisioning' => "Tenant deletion failed for {$tenantName}. Check that MySQL is running and that the database user can drop tenant databases.",
+                    'provisioning' => "College removal failed for {$tenantName}. Check that MySQL is running and that the database user can drop college databases.",
                 ]);
         }
 
         return redirect()
             ->route('central.dashboard', ['section' => 'directory'])
-            ->with('status', "Tenant {$tenantName} and database {$databaseName} deleted successfully.");
-    }
-
-    protected function createTenantDatabase(string $database): void
-    {
-        $databaseName = str_replace('`', '', $database);
-
-        DB::connection(config('tenancy.central_connection', 'central'))
-            ->statement("CREATE DATABASE IF NOT EXISTS `{$databaseName}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+            ->with('status', "College {$tenantName} and database {$databaseName} deleted successfully.");
     }
 
     protected function dropTenantDatabase(string $database): void
@@ -206,16 +228,132 @@ class TenantProvisionController extends Controller
             ->statement("DROP DATABASE IF EXISTS `{$databaseName}`");
     }
 
-    protected function uniqueSlug(string $baseSlug): string
+    protected function ensureDomainHostsAreAvailable(array $hosts, ?Tenant $tenant = null): void
     {
-        $slug = $baseSlug;
-        $counter = 2;
+        foreach ($hosts as $host) {
+            $query = TenantDomain::query()->whereRaw('LOWER(host) = ?', [strtolower($host)]);
 
-        while (Tenant::query()->where('slug', $slug)->exists()) {
-            $slug = "{$baseSlug}-{$counter}";
-            $counter++;
+            if ($tenant) {
+                $query->where('tenant_id', '!=', $tenant->getKey());
+            }
+
+            if ($query->exists()) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'domain_hosts' => "The host {$host} is already assigned to another tenant.",
+                ]);
+            }
+        }
+    }
+
+    protected function resolvedDomainHosts(array $validated): array
+    {
+        $hosts = [];
+
+        if (filled($validated['domain'] ?? null)) {
+            $hosts[] = strtolower(trim((string) $validated['domain']));
         }
 
-        return $slug;
+        $hosts = array_merge($hosts, $this->tenantUrlGenerator->localAliasHosts(
+            $validated['subdomain'] ?? null,
+            $validated['name'] ?? null,
+            null,
+        ));
+
+        return array_values(array_unique(array_filter($hosts)));
+    }
+
+    protected function normalizedDomainHosts(string $value): array
+    {
+        return collect(preg_split('/[\r\n,]+/', $value) ?: [])
+            ->map(fn (string $host) => strtolower(trim($host)))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    protected function syncDomainHosts(Tenant $tenant, array $hosts): void
+    {
+        TenantDomain::query()->where('tenant_id', $tenant->getKey())->update([
+            'is_active' => false,
+            'is_primary' => false,
+        ]);
+
+        foreach (array_values($hosts) as $index => $host) {
+            TenantDomain::query()->updateOrCreate(
+                ['host' => $host],
+                [
+                    'tenant_id' => $tenant->getKey(),
+                    'is_active' => true,
+                    'is_primary' => $index === 0,
+                ]
+            );
+        }
+    }
+
+    protected function syncTenantAdminContact(Tenant $tenant, string $email, ?string $name = null): void
+    {
+        $this->tenantDatabaseManager->connect($tenant);
+
+        $admin = TenantAdmin::query()->orderBy('id')->first();
+
+        if (! $admin) {
+            throw ValidationException::withMessages([
+                'admin_email' => 'No tenant coordinator account was found in the tenant database.',
+            ]);
+        }
+
+        $emailTaken = TenantAdmin::query()
+            ->where('email', $email)
+            ->whereKeyNot($admin->getKey())
+            ->exists()
+            || Supervisor::query()->where('email', $email)->exists()
+            || Student::query()->where('email', $email)->exists();
+
+        if ($emailTaken) {
+            throw ValidationException::withMessages([
+                'admin_email' => 'This email is already used by another tenant account.',
+            ]);
+        }
+
+        $admin->forceFill([
+            'name' => filled($name) ? $name : $admin->name,
+            'email' => $email,
+        ])->save();
+    }
+
+    protected function sendActivationNotice(Tenant $tenant): bool
+    {
+        return $this->sendLifecycleMail($tenant, fn ($contact) => new TenantActivatedMail($tenant, $contact->name));
+    }
+
+    protected function sendSubscriptionUpdatedNotice(Tenant $tenant): bool
+    {
+        return $this->sendLifecycleMail($tenant, fn ($contact) => new TenantSubscriptionUpdatedMail($tenant, $contact->name));
+    }
+
+    protected function sendLifecycleMail(Tenant $tenant, callable $mailableResolver): bool
+    {
+        $this->tenantDatabaseManager->connect($tenant);
+
+        $contacts = TenantAdmin::query()
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['name', 'email']);
+
+        if ($contacts->isEmpty()) {
+            return false;
+        }
+
+        foreach ($contacts as $contact) {
+            Mail::to($contact->email)->send($mailableResolver($contact));
+        }
+
+        return true;
+    }
+
+    protected function authorizeTenantManagement(): void
+    {
+        Gate::forUser(Auth::guard('central_superadmin')->user())->authorize('manage-tenants');
     }
 }

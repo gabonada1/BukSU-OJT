@@ -25,7 +25,7 @@ class TeacherRegistrationVerificationMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Verify your BukSU practicum teacher registration',
+            subject: 'Verify your BukSU Practicum Portal company supervisor registration',
         );
     }
 

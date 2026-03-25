@@ -12,6 +12,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -25,6 +26,7 @@ class TenantUserManagementController extends Controller
         $tenant = $currentTenant->tenant();
 
         abort_unless($tenant, 404);
+        Gate::forUser(Auth::guard('tenant_admin')->user())->authorize('manage-tenant-users');
 
         $user = $this->resolveUser($type, $id);
 
@@ -41,7 +43,7 @@ class TenantUserManagementController extends Controller
         if ($currentRole === 'admin' && $currentAdmin && $currentAdmin->getKey() === $user->getKey()) {
             if (! $isActive || $targetRole !== 'admin') {
                 throw ValidationException::withMessages([
-                    'role' => 'You cannot suspend or reassign the admin account that is currently signed in.',
+                    'role' => 'You cannot suspend or reassign the internship coordinator account that is currently signed in.',
                 ]);
             }
         }
@@ -58,7 +60,7 @@ class TenantUserManagementController extends Controller
 
             if ($user instanceof Student && ($user->requirements()->exists() || $user->hourLogs()->exists())) {
                 throw ValidationException::withMessages([
-                    'role' => 'Students with requirement or hour-log records cannot be reassigned to another role.',
+                    'role' => 'Students with forms, requirements, or progress records cannot be reassigned to another role.',
                 ]);
             }
 
@@ -73,7 +75,7 @@ class TenantUserManagementController extends Controller
             $tenant,
             'admin.dashboard',
             ['section' => 'users'],
-            'User account updated.'
+            'College portal account updated.'
         );
     }
 

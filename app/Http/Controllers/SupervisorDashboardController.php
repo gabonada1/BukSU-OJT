@@ -18,10 +18,12 @@ class SupervisorDashboardController extends Controller
         $hourLogs = $students->isEmpty()
             ? collect()
             : $students->load('hourLogs')->pluck('hourLogs')->flatten()->sortByDesc('log_date')->take(10);
+        $tenant = app(\App\Support\Tenancy\CurrentTenant::class)->tenant();
+        $portalTitle = data_get($tenant?->settings, 'branding.portal_title', config('app.name', 'BukSU Practicum Portal'));
 
         return view('tenant.supervisor.dashboard', [
-            'tenant' => app(\App\Support\Tenancy\CurrentTenant::class)->tenant(),
-            'pageTitle' => 'Teacher Dashboard | '.config('app.name', 'BukSU Practicum'),
+            'tenant' => $tenant,
+            'pageTitle' => 'Company Supervisor Dashboard | '.$portalTitle,
             'supervisor' => $supervisor,
             'company' => $company,
             'students' => $students,

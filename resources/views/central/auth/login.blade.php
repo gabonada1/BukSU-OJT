@@ -9,13 +9,20 @@
 @section('content')
     <section class="login-stage">
         <article class="login-panel">
-            <div>
-                <div class="eyebrow">Central Access</div>
-                <h1>BukSU Superadmin Portal</h1>
+            <div class="login-panel-brand">
+                <img src="{{ $systemLogo }}" alt="BukSU Logo" class="login-panel-logo">
+                <div class="eyebrow">University Access</div>
+            </div>
+
+            <div class="login-panel-copy">
+                <h1>BukSU Practicum Portal</h1>
+                <p class="login-panel-subtitle">University Administration Access</p>
                 <p class="lead">
-                    Sign in to manage tenant subscriptions, create new college workspaces, and control access across the
-                    multitenant practicum platform.
+                    Sign in to manage college registrations, monitor portal access, and oversee practicum operations
+                    across Bukidnon State University.
                 </p>
+                <div class="login-divider"></div>
+                <p class="login-university-tagline">Bukidnon State University - Office of Practicum Affairs</p>
             </div>
 
             @if ($errors->any())
@@ -33,26 +40,26 @@
                 @csrf
                 <label>
                     Email
-                    <input type="email" name="email" value="{{ old('email') }}" placeholder="superadmin@buksu.test" required>
+                    <input type="email" name="email" value="{{ old('email') }}" placeholder="university-admin@lvh.me" required>
                 </label>
                 <label>
                     Password
-                    <input type="password" name="password" placeholder="Enter your superadmin password" required>
+                    <input type="password" name="password" placeholder="Enter your University Administration password" required>
                 </label>
                 <label class="checkline">
                     <input type="checkbox" name="remember" value="1">
                     Keep me signed in on this browser
                 </label>
-                <button type="submit">Sign In to Central</button>
+                <button type="submit">Sign In to University Administration</button>
             </form>
 
             <div class="login-support">
-                <strong>BukSU Central</strong>
-                <p>Manage tenants, subscriptions, and access from one central workspace.</p>
+                <strong>BukSU University Admin</strong>
+                <p>Manage college portals, license periods, and access from one institutional administration workspace.</p>
                 <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:14px;">
-                    <span class="pill">Provisioning</span>
-                    <span class="pill">Subscriptions</span>
-                    <span class="pill">Tenant Directory</span>
+                    <span class="pill">College Registry</span>
+                    <span class="pill">Portal Access</span>
+                    <span class="pill">License Tracking</span>
                 </div>
             </div>
         </article>
@@ -63,10 +70,10 @@
                     <img src="{{ $systemLogo }}" alt="BukSU Logo" class="logo-showcase-image">
                 </div>
                 <div class="logo-showcase-copy">
-                    <div class="eyebrow">Central Control</div>
-                    <h3>BukSU Practicum</h3>
-                    <p>Tenant provisioning, subscription management, and domain access in one central hub.</p>
-                    <span class="preview-chip">Central Application</span>
+                    <div class="eyebrow">University Administration</div>
+                    <h3>BukSU Practicum Portal</h3>
+                    <p>College registration, portal lifecycle management, and practicum oversight in one BukSU system.</p>
+                    <span class="preview-chip">University Administration</span>
                 </div>
             </div>
         </article>

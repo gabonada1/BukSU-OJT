@@ -27,17 +27,16 @@ class StudentDashboardController extends Controller
             ->latest()
             ->get();
 
+        $tenant = app(\App\Support\Tenancy\CurrentTenant::class)->tenant();
+        $portalTitle = data_get($tenant?->settings, 'branding.portal_title', config('app.name', 'BukSU Practicum Portal'));
+
         return view('tenant.student.dashboard', [
-            'tenant' => app(\App\Support\Tenancy\CurrentTenant::class)->tenant(),
-            'pageTitle' => 'Student Dashboard | '.config('app.name', 'BukSU Practicum'),
+            'tenant' => $tenant,
+            'pageTitle' => 'Student Dashboard | '.$portalTitle,
             'student' => $student,
             'companies' => $companies,
-            'studentApplicationAction' => request()->routeIs('tenant.domain.*')
-                ? route('tenant.domain.student.applications.store')
-                : route('tenant.student.applications.store', app(\App\Support\Tenancy\CurrentTenant::class)->tenant()),
-            'studentRequirementAction' => request()->routeIs('tenant.domain.*')
-                ? route('tenant.domain.student.requirements.store')
-                : route('tenant.student.requirements.store', app(\App\Support\Tenancy\CurrentTenant::class)->tenant()),
+            'studentApplicationAction' => route('tenant.student.applications.store'),
+            'studentRequirementAction' => route('tenant.student.requirements.store'),
         ]);
     }
 }

@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class CentralAuthController extends Controller
@@ -14,7 +16,7 @@ class CentralAuthController extends Controller
     public function create(): View
     {
         return view('central.auth.login', [
-            'pageTitle' => 'Superadmin Login | '.config('app.name', 'BukSU Practicum'),
+            'pageTitle' => 'University Administration Login | '.config('app.name', 'BukSU Practicum Portal'),
             'loginAction' => route('central.login.store'),
         ]);
     }
@@ -28,13 +30,15 @@ class CentralAuthController extends Controller
 
         if (! Auth::guard('central_superadmin')->attempt($request->only('email', 'password'), $request->boolean('remember'))) {
             throw ValidationException::withMessages([
-                'email' => 'The provided superadmin credentials are invalid.',
+                'email' => 'The provided University Administration credentials are invalid.',
             ]);
         }
 
         $request->session()->regenerate();
 
-        return redirect()->route('central.dashboard');
+        return $this->forgetLegacyCentralCookies(
+            redirect()->route('central.dashboard')
+        );
     }
 
     public function destroy(Request $request): RedirectResponse
@@ -44,6 +48,24 @@ class CentralAuthController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect()->route('central.login');
+        return $this->forgetLegacyCentralCookies(
+            redirect()->route('central.login')
+        );
+    }
+
+    protected function forgetLegacyCentralCookies(RedirectResponse $response): RedirectResponse
+    {
+        $baseCookie = Str::slug((string) config('app.name', 'laravel')).'-session';
+        $cookies = [
+            [$baseCookie.'-central', '/central'],
+            [$baseCookie.'-central', '/'],
+            [$baseCookie.'-central-v2', '/central'],
+        ];
+
+        foreach ($cookies as [$name, $path]) {
+            $response->withCookie(Cookie::forget($name, $path));
+        }
+
+        return $response;
     }
 }

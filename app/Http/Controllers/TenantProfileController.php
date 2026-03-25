@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\InteractsWithTenantRouting;
+use App\Models\Course;
 use App\Models\Student;
 use App\Models\Supervisor;
 use App\Models\TenantAdmin;
 use App\Support\Tenancy\CurrentTenant;
+use App\Support\Tenancy\TenantUploadManager;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -21,24 +23,47 @@ class TenantProfileController extends Controller
 
     public function show(CurrentTenant $currentTenant): View
     {
-        [$role, , $user] = $this->currentUser();
+        $requestedRole = $this->requestedRole();
+        [$role, , $user] = $this->currentUser($requestedRole);
         $tenant = $currentTenant->tenant();
 
         abort_unless($tenant && $user, 404);
 
+        $brandingSettings = $this->brandingSettings($tenant);
+
+        if ($role === 'student' && $user instanceof Student) {
+            $user->loadMissing('course');
+        }
+
+        $courses = $role === 'admin'
+            ? Course::query()->withCount('students')->orderBy('sort_order')->orderBy('code')->get()
+            : collect();
+
         return view('tenant.profile.show', [
             'tenant' => $tenant,
-            'pageTitle' => 'Profile | '.config('app.name', 'BukSU Practicum'),
+            'pageTitle' => 'Profile | '.$brandingSettings['portal_title'],
             'profileRole' => $role,
             'profileUser' => $user,
-            'profileUpdateAction' => $this->tenantRoute($tenant, 'profile.update'),
-            'passwordUpdateAction' => $this->tenantRoute($tenant, 'profile.password.update'),
+            'courses' => $courses,
+            'brandingSettings' => $brandingSettings,
+            'ojtSettings' => $this->ojtSettings($tenant),
+            'profileUpdateAction' => $this->tenantRoute($tenant, $this->profileRouteName($role, 'profile.update')),
+            'passwordUpdateAction' => $this->tenantRoute($tenant, $this->profileRouteName($role, 'profile.password.update')),
+            'brandingSettingsAction' => $this->tenantRoute($tenant, 'admin.profile.branding-settings'),
+            'courseStoreAction' => $this->tenantRoute($tenant, 'courses.store'),
+            'ojtSettingsAction' => $this->tenantRoute($tenant, 'admin.profile.ojt-settings'),
+            'courseActions' => $courses->mapWithKeys(fn (Course $course) => [
+                $course->getKey() => [
+                    'update' => $this->tenantRoute($tenant, 'courses.update', ['course' => $course]),
+                    'destroy' => $this->tenantRoute($tenant, 'courses.destroy', ['course' => $course]),
+                ],
+            ])->all(),
         ]);
     }
 
     public function update(Request $request, CurrentTenant $currentTenant): RedirectResponse
     {
-        [$role, , $user] = $this->currentUser();
+        [$role, , $user] = $this->currentUser($this->requestedRole());
         $tenant = $currentTenant->tenant();
 
         abort_unless($tenant && $user, 404);
@@ -65,12 +90,12 @@ class TenantProfileController extends Controller
 
         $user->update($data);
 
-        return $this->redirectToTenantRoute($request, $tenant, 'profile.show', status: 'Profile updated.');
+        return $this->redirectToTenantRoute($request, $tenant, $this->profileRouteName($role, 'profile.show'), status: 'Profile updated.');
     }
 
     public function updatePassword(Request $request, CurrentTenant $currentTenant): RedirectResponse
     {
-        [, $guard, $user] = $this->currentUser();
+        [$role, $guard, $user] = $this->currentUser($this->requestedRole());
         $tenant = $currentTenant->tenant();
 
         abort_unless($tenant && $user, 404);
@@ -92,11 +117,90 @@ class TenantProfileController extends Controller
 
         Auth::guard($guard)->setUser($user->fresh());
 
-        return $this->redirectToTenantRoute($request, $tenant, 'profile.show', status: 'Password updated.');
+        return $this->redirectToTenantRoute($request, $tenant, $this->profileRouteName($role, 'profile.show'), status: 'Password updated.');
     }
 
-    protected function currentUser(): array
+    public function saveOjtSettings(Request $request, CurrentTenant $currentTenant): RedirectResponse
     {
+        $tenant = $currentTenant->tenant();
+
+        abort_unless($tenant, 404);
+        abort_unless(Auth::guard('tenant_admin')->check(), 403);
+
+        $validated = $request->validate([
+            'default_ojt_hours' => ['required', 'numeric', 'min:1', 'max:9999'],
+            'allow_student_hour_override' => ['nullable', 'boolean'],
+            'ojt_hours_note' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $settings = $tenant->settings ?? [];
+        $settings['default_ojt_hours'] = (float) $validated['default_ojt_hours'];
+        $settings['allow_student_hour_override'] = $request->boolean('allow_student_hour_override', false);
+        $settings['ojt_hours_note'] = $validated['ojt_hours_note'] ?? null;
+
+        $tenant->update([
+            'settings' => $settings,
+        ]);
+
+        return $this->redirectToTenantRoute($request, $tenant, 'admin.profile.show', status: 'OJT hours settings saved.')
+            ->withFragment('ojt-settings');
+    }
+
+    public function saveBrandingSettings(
+        Request $request,
+        CurrentTenant $currentTenant,
+        TenantUploadManager $uploadManager,
+    ): RedirectResponse {
+        $tenant = $currentTenant->tenant();
+
+        abort_unless($tenant, 404);
+        abort_unless(Auth::guard('tenant_admin')->check(), 403);
+
+        $validated = $request->validate([
+            'portal_title' => ['required', 'string', 'max:120'],
+            'accent_color' => ['required', 'regex:/^#[0-9A-Fa-f]{6}$/'],
+            'secondary_color' => ['required', 'regex:/^#[0-9A-Fa-f]{6}$/'],
+            'portal_logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+        ]);
+
+        $settings = $tenant->settings ?? [];
+        $branding = is_array($settings['branding'] ?? null) ? $settings['branding'] : [];
+        $portalTitle = trim($validated['portal_title']);
+
+        $branding['portal_title'] = $portalTitle !== '' ? $portalTitle : config('app.name', 'BukSU Practicum Portal');
+        $branding['accent'] = strtoupper($validated['accent_color']);
+        $branding['secondary'] = strtoupper($validated['secondary_color']);
+        $branding['logo_path'] = $uploadManager->replace(
+            $request->file('portal_logo'),
+            $tenant,
+            'branding',
+            $branding['logo_path'] ?? null,
+        );
+
+        $settings['branding'] = $branding;
+
+        $tenant->update([
+            'settings' => $settings,
+        ]);
+
+        return $this->redirectToTenantRoute($request, $tenant, 'admin.profile.show', status: 'Portal branding saved.')
+            ->withFragment('portal-branding');
+    }
+
+    protected function currentUser(?string $preferredRole = null): array
+    {
+        if ($preferredRole === 'admin' && ($user = Auth::guard('tenant_admin')->user())) {
+            return ['admin', 'tenant_admin', $this->freshTenantUser($user)];
+        }
+
+        if ($preferredRole === 'supervisor' && ($user = Auth::guard('supervisor')->user())) {
+            return ['supervisor', 'supervisor', $this->freshTenantUser($user)];
+        }
+
+        if ($preferredRole === 'student' && ($user = Auth::guard('student')->user())) {
+            return ['student', 'student', $this->freshTenantUser($user)];
+        }
+
         if ($user = Auth::guard('tenant_admin')->user()) {
             return ['admin', 'tenant_admin', $this->freshTenantUser($user)];
         }
@@ -108,6 +212,21 @@ class TenantProfileController extends Controller
         $student = Auth::guard('student')->user();
 
         return ['student', 'student', $student ? $this->freshTenantUser($student) : null];
+    }
+
+    protected function requestedRole(): ?string
+    {
+        return match (true) {
+            request()->routeIs('tenant*.admin.*') => 'admin',
+            request()->routeIs('tenant*.supervisor.*') => 'supervisor',
+            request()->routeIs('tenant*.student.*') => 'student',
+            default => null,
+        };
+    }
+
+    protected function profileRouteName(string $role, string $suffix): string
+    {
+        return "{$role}.{$suffix}";
     }
 
     protected function freshTenantUser($user)
@@ -125,8 +244,36 @@ class TenantProfileController extends Controller
 
         if ($conflict) {
             throw ValidationException::withMessages([
-                'email' => 'This email is already assigned to another tenant role.',
+                'email' => 'This email is already assigned to another college portal role.',
             ]);
         }
+    }
+
+    protected function ojtSettings($tenant): array
+    {
+        $settings = $tenant->settings ?? [];
+
+        return [
+            'default_ojt_hours' => $settings['default_ojt_hours'] ?? 486,
+            'allow_student_hour_override' => $settings['allow_student_hour_override'] ?? false,
+            'ojt_hours_note' => $settings['ojt_hours_note'] ?? null,
+        ];
+    }
+
+    protected function brandingSettings($tenant): array
+    {
+        $settings = $tenant->settings ?? [];
+        $branding = is_array($settings['branding'] ?? null) ? $settings['branding'] : [];
+        $accent = (string) ($branding['accent'] ?? '');
+        $secondary = (string) ($branding['secondary'] ?? '');
+
+        return [
+            'portal_title' => filled($branding['portal_title'] ?? null)
+                ? $branding['portal_title']
+                : config('app.name', 'BukSU Practicum Portal'),
+            'accent' => preg_match('/^#[0-9A-Fa-f]{6}$/', $accent) ? strtoupper($accent) : '#7B1C2E',
+            'secondary' => preg_match('/^#[0-9A-Fa-f]{6}$/', $secondary) ? strtoupper($secondary) : '#F5A623',
+            'logo_path' => $branding['logo_path'] ?? null,
+        ];
     }
 }

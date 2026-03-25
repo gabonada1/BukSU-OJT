@@ -19,7 +19,7 @@ class TenantDatabaseSeeder extends Seeder
                 'industry' => 'Information Technology',
                 'address' => 'Malaybalay City, Bukidnon',
                 'contact_person' => 'System Administrator',
-                'contact_email' => 'tech@buksu.test',
+                'contact_email' => 'tech@technology.localhost',
                 'contact_phone' => '09123456789',
                 'intern_slot_limit' => 25,
                 'is_active' => true,
@@ -27,15 +27,15 @@ class TenantDatabaseSeeder extends Seeder
         );
 
         TenantAdmin::query()->firstOrCreate(
-            ['email' => 'admin@technology.buksu.test'],
+            ['email' => 'admin@technology.localhost'],
             [
-                'name' => 'Technology Admin',
+                'name' => 'Technology Internship Coordinator',
                 'password' => 'password123',
             ]
         );
 
         Supervisor::query()->firstOrCreate(
-            ['email' => 'supervisor@technology.buksu.test'],
+            ['email' => 'supervisor@technology.localhost'],
             [
                 'name' => 'Company Supervisor',
                 'position' => 'IT Supervisor',
@@ -45,7 +45,7 @@ class TenantDatabaseSeeder extends Seeder
         );
 
         $student = Student::query()->firstOrCreate(
-            ['email' => 'student@technology.buksu.test'],
+            ['email' => 'student@technology.localhost'],
             [
                 'student_number' => '2024-0001',
                 'first_name' => 'Tech',

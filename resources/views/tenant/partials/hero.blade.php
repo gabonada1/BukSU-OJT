@@ -1,9 +1,16 @@
+@php
+    $tenantBranding = is_array($tenant->settings['branding'] ?? null) ? $tenant->settings['branding'] : [];
+    $tenantPortalTitle = filled($tenantBranding['portal_title'] ?? null)
+        ? $tenantBranding['portal_title']
+        : config('app.name', 'BukSU Practicum Portal');
+@endphp
+
 <section class="hero">
-    <div class="eyebrow">Centralized BukSU Platform | Active Tenant: {{ $tenant->code }}</div>
-    <h1>{{ $tenant->name }} Practicum Placement System</h1>
+    <div class="eyebrow">{{ $tenantPortalTitle }} | Active College: {{ $tenant->code }}</div>
+    <h1>{{ $tenant->name }} OJT Portal</h1>
     <p class="lead">
-        The College of Technologies now runs on a centralized BukSU app with an isolated tenant database for
-        its own companies, students, requirements, and OJT hour logs.
+        {{ $tenant->name }} runs on {{ $tenantPortalTitle }} with an isolated college database for its own
+        partner organizations, students, practicum requirements, and OJT hour logs.
     </p>
 
     <div class="stats">

@@ -7,13 +7,13 @@
 <article class="card">
 @endunless
     @if ($showHeading)
-        <h2>Supervisors</h2>
+        <h2>Company Supervisors</h2>
     @endif
     @if ($supervisors->isEmpty())
-        <p>No supervisors yet.</p>
+        <p>No company supervisors registered yet.</p>
     @else
         <table>
-            <thead><tr><th>Name</th><th>Department</th><th>Company</th><th>Email</th><th>Status</th><th>Action</th></tr></thead>
+            <thead><tr><th>Name</th><th>Department</th><th>Organization</th><th>Email</th><th>Status</th><th>Action</th></tr></thead>
             <tbody>
                 @foreach ($supervisors as $supervisor)
                     <tr>

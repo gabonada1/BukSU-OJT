@@ -37,7 +37,7 @@ class PartnerCompanyController extends Controller
             $tenant,
             'admin.dashboard',
             ['section' => 'companies'],
-            'Partner company added.'
+            'Partner organization added.'
         );
     }
 
@@ -64,7 +64,7 @@ class PartnerCompanyController extends Controller
             $tenant,
             'admin.dashboard',
             ['section' => 'companies'],
-            'Partner company updated.'
+            'Partner organization updated.'
         );
     }
 }

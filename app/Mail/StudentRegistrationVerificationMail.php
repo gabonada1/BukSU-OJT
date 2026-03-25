@@ -25,7 +25,7 @@ class StudentRegistrationVerificationMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Verify your BukSU practicum student registration',
+            subject: 'Verify your BukSU Practicum Portal student registration',
         );
     }
 

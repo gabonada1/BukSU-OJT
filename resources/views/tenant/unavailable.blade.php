@@ -12,25 +12,25 @@
     $plans = [
         'basic' => [
             'label' => 'Basic',
-            'summary' => 'Designed for small colleges or limited internship programs.',
+            'summary' => 'Designed for smaller colleges or focused practicum programs.',
             'features' => [
-                'Up to 200 students per tenant',
-                'Partner company management',
-                'Student application submission',
+                'Up to 200 students per college portal',
+                'Partner organization management',
+                'Student OJT application submission',
                 'Document uploads (MOA, resume, clearance, etc.)',
-                'Basic OJT hours tracking',
-                'Supervisor evaluation forms',
+                'Basic OJT hour tracking',
+                'Company supervisor evaluation forms',
                 'Limited support and reports',
                 'No advanced dashboards or analytics',
             ],
         ],
         'pro' => [
             'label' => 'Pro',
-            'summary' => 'For medium-sized colleges with more active programs.',
+            'summary' => 'For medium-sized colleges with more active practicum operations.',
             'features' => [
-                'Up to 500 students per tenant',
-                'All Basic plan features',
-                'Progress tracking dashboards for students and admin',
+                'Up to 500 students per college portal',
+                'All Basic college license features',
+                'Progress tracking dashboards for students and coordinators',
                 'Commenting and revision requests on documents and reports',
                 'Monthly summary reports for placements and evaluations',
                 'Notifications for pending tasks and approvals',
@@ -38,12 +38,12 @@
         ],
         'premium' => [
             'label' => 'Premium',
-            'summary' => 'For large colleges or multi-college setups with full program oversight.',
+            'summary' => 'For large colleges with full practicum oversight and reporting needs.',
             'features' => [
                 'Unlimited students',
-                'All Pro plan features',
+                'All Pro college license features',
                 'Advanced analytics and reports (placement stats, OJT hour completion, evaluation summaries)',
-                'Certificate generation for completed internships',
+                'Certificate generation for completed OJT deployments',
                 'Custom branding per college (logo, theme)',
                 'Priority support',
                 'API access for integration with other college systems',
@@ -58,22 +58,22 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Tenant Unavailable</title>
+        <title>College Portal Unavailable</title>
         <style>
             :root {
-                --page: #101114;
-                --page-alt: #18191e;
-                --shell: #202228;
-                --panel: #2b2e36;
-                --panel-soft: #343842;
-                --card-ink: #f6f1ed;
-                --card-muted: #b9b0aa;
-                --accent: #c86b61;
-                --accent-strong: #a74c46;
-                --warm: #d6b36a;
-                --danger: #d88e83;
-                --success: #8fb8a0;
-                --shadow: 0 26px 56px rgba(0, 0, 0, 0.28);
+                --page: #13131f;
+                --page-alt: #1a1a2e;
+                --shell: #1f1f38;
+                --panel: #272745;
+                --panel-soft: #31315a;
+                --card-ink: #f0ecf8;
+                --card-muted: #a89ec0;
+                --accent: #7B1C2E;
+                --accent-strong: #5E1423;
+                --warm: #F5A623;
+                --danger: #d07070;
+                --success: #6db88a;
+                --shadow: 0 26px 56px rgba(0, 0, 0, 0.32);
             }
 
             * {
@@ -85,8 +85,8 @@
                 min-height: 100vh;
                 padding: 32px 24px;
                 font-family: "Bahnschrift", "Segoe UI", "Trebuchet MS", sans-serif;
-                background: radial-gradient(circle at top center, rgba(200, 107, 97, 0.08), transparent 24%), linear-gradient(180deg, var(--page), var(--page-alt));
-                color: #f4efeb;
+                background: radial-gradient(circle at top center, rgba(123, 28, 46, 0.12), transparent 28%), linear-gradient(180deg, var(--page), var(--page-alt));
+                color: #f0edf5;
             }
 
             .wrap {
@@ -113,7 +113,7 @@
                 font-weight: 700;
                 letter-spacing: 0.14em;
                 text-transform: uppercase;
-                color: #ece5e0;
+                color: #ece5f4;
                 background: rgba(255, 255, 255, 0.06);
                 border: 1px solid rgba(255, 255, 255, 0.08);
             }
@@ -164,9 +164,9 @@
             }
 
             .status {
-                color: #f6e1dd;
-                background: rgba(216, 142, 131, 0.16);
-                border: 1px solid rgba(216, 142, 131, 0.24);
+                color: #f3dde3;
+                background: rgba(123, 28, 46, 0.16);
+                border: 1px solid rgba(123, 28, 46, 0.24);
             }
 
             .cta-card {
@@ -190,7 +190,7 @@
                 font-weight: 700;
                 letter-spacing: 0.02em;
                 text-decoration: none;
-                box-shadow: 0 12px 24px rgba(167, 76, 70, 0.24);
+                box-shadow: 0 12px 24px rgba(94, 20, 35, 0.24);
             }
 
             .button.secondary {
@@ -216,7 +216,7 @@
             .plan-card {
                 padding: 24px 22px;
                 border-radius: 26px;
-                background: linear-gradient(180deg, #252830, #1f2127);
+                background: linear-gradient(180deg, #252546, #1b1b31);
                 border: 1px solid rgba(255, 255, 255, 0.06);
                 box-shadow: var(--shadow);
                 display: grid;
@@ -224,8 +224,8 @@
             }
 
             .plan-card.active {
-                border-color: rgba(200, 107, 97, 0.34);
-                box-shadow: 0 22px 40px rgba(167, 76, 70, 0.14);
+                border-color: rgba(123, 28, 46, 0.34);
+                box-shadow: 0 22px 40px rgba(94, 20, 35, 0.18);
             }
 
             .plan-top {
@@ -254,13 +254,13 @@
                 text-transform: uppercase;
                 background: rgba(255, 255, 255, 0.06);
                 border: 1px solid rgba(255, 255, 255, 0.08);
-                color: #ece5e0;
+                color: #ece5f4;
             }
 
             .plan-card.active .plan-badge {
-                background: rgba(200, 107, 97, 0.16);
-                border-color: rgba(200, 107, 97, 0.24);
-                color: #ffd9d4;
+                background: rgba(123, 28, 46, 0.16);
+                border-color: rgba(123, 28, 46, 0.24);
+                color: #ffd9e2;
             }
 
             .plan-summary {
@@ -310,7 +310,7 @@
         <main class="wrap">
             <section class="top">
                 <article class="panel">
-                    <span class="eyebrow">Tenant Access Blocked</span>
+                    <span class="eyebrow">College Portal Access Paused</span>
                     <h1>{{ $tenant->name }}</h1>
                     <p>{{ $message }}</p>
 
@@ -320,11 +320,11 @@
                             <span>{{ ucfirst($tenant->subscriptionStatus()) }}</span>
                         </div>
                         <div>
-                            <strong>Subscription Starts</strong>
+                            <strong>License Starts</strong>
                             <span>{{ $tenant->subscription_starts_at?->format('M d, Y') ?: 'Not set' }}</span>
                         </div>
                         <div>
-                            <strong>Subscription Expires</strong>
+                            <strong>License Expires</strong>
                             <span>{{ $tenant->subscription_expires_at?->format('M d, Y') ?: 'Open-ended' }}</span>
                         </div>
                     </div>
@@ -332,15 +332,15 @@
 
                 <aside class="panel cta-card">
                     <div>
-                        <span class="eyebrow">Subscription</span>
+                        <span class="eyebrow">College License</span>
                         <h2 style="margin:16px 0 8px;font-size:28px;letter-spacing:-0.03em;color:var(--card-ink);">Restore Access</h2>
-                        <p>Open the central subscription side to renew this tenant plan and reactivate the domain.</p>
+                        <p>Open University Administration to renew this college license tier and reactivate the portal.</p>
                     </div>
 
-                    <a class="button" href="{{ $renewUrl }}">Subscribe Again</a>
+                    <a class="button" href="{{ $renewUrl }}">Open University Administration</a>
 
                     <div class="helper">
-                        <strong>Current Plan</strong>
+                        <strong>Current License</strong>
                         <span style="color:var(--card-muted);">{{ strtoupper($tenant->plan) }}</span>
                     </div>
                 </aside>

@@ -48,7 +48,7 @@ class StudentRequirementController extends Controller
             $tenant,
             'admin.dashboard',
             ['section' => 'requirements'],
-            'Requirement recorded.'
+            'Form or requirement recorded.'
         );
     }
 
@@ -87,7 +87,7 @@ class StudentRequirementController extends Controller
             $tenant,
             'admin.dashboard',
             ['section' => 'requirements'],
-            'Requirement updated.'
+            'Form or requirement updated.'
         );
     }
 
@@ -120,6 +120,6 @@ class StudentRequirementController extends Controller
         ]);
 
         return redirect()->to($this->tenantRoute($tenant, 'student.dashboard').'#requirements')
-            ->with('status', 'Document uploaded. Your tenant admin can now review it.');
+            ->with('status', 'Document uploaded. Your internship coordinator can now review it.');
     }
 }

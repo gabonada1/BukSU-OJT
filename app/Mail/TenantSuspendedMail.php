@@ -23,7 +23,7 @@ class TenantSuspendedMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Tenant access suspended: '.$this->tenant->name,
+            subject: 'College portal access suspended: '.$this->tenant->name,
         );
     }
 

@@ -43,4 +43,9 @@ class TenantAdmin extends Authenticatable
     {
         return $this->canAccessPortal() ? 'active' : 'suspended';
     }
+
+    public function canManageTenantUsers(): bool
+    {
+        return $this->canAccessPortal();
+    }
 }

@@ -5,23 +5,23 @@
 
     $sections = [
         'companies' => [
-            'title' => 'Companies',
-            'create_title' => 'Company',
-            'empty' => 'No partner companies yet.',
+            'title' => 'Partner Organizations',
+            'create_title' => 'Partner Organization',
+            'empty' => 'No partner organizations on file yet.',
             'table' => 'tenant.partials.tables.partner-companies-table',
             'form' => 'tenant.partials.forms.partner-company-form',
         ],
         'applications' => [
-            'title' => 'Applications',
-            'create_title' => 'Application',
-            'empty' => 'No internship applications yet.',
+            'title' => 'Student Applications',
+            'create_title' => 'Student Application',
+            'empty' => 'No student applications yet.',
             'table' => 'tenant.partials.tables.applications-table',
             'form' => 'tenant.partials.forms.application-form',
         ],
         'supervisors' => [
-            'title' => 'Supervisors',
-            'create_title' => 'Supervisor',
-            'empty' => 'No supervisors yet.',
+            'title' => 'Company Supervisors',
+            'create_title' => 'Company Supervisor',
+            'empty' => 'No company supervisors registered yet.',
             'table' => 'tenant.partials.tables.supervisors-table',
             'form' => 'tenant.partials.forms.supervisor-form',
         ],
@@ -33,22 +33,22 @@
             'form' => 'tenant.partials.forms.student-form',
         ],
         'users' => [
-            'title' => 'User Management',
-            'empty' => 'No tenant users yet.',
+            'title' => 'RBAC & User Management',
+            'empty' => 'No college portal users yet.',
             'table' => 'tenant.partials.tables.users-table',
             'form' => 'tenant.partials.forms.user-management-form',
         ],
         'requirements' => [
-            'title' => 'Requirements',
-            'create_title' => 'Requirement',
-            'empty' => 'No requirements submitted yet.',
+            'title' => 'Forms & Requirements',
+            'create_title' => 'Form / Requirement',
+            'empty' => 'No forms or requirements submitted yet.',
             'table' => 'tenant.partials.tables.requirements-table',
             'form' => 'tenant.partials.forms.requirement-form',
         ],
         'hours' => [
-            'title' => 'Hour Logs',
-            'create_title' => 'Hour Log',
-            'empty' => 'No hour logs yet.',
+            'title' => 'Progress & Hour Logs',
+            'create_title' => 'Progress / Hour Log',
+            'empty' => 'No progress or hour logs yet.',
             'table' => 'tenant.partials.tables.hour-logs-table',
             'form' => 'tenant.partials.forms.hour-log-form',
         ],
@@ -77,9 +77,7 @@
         'users' => $editingUser,
         default => null,
     });
-    $dashboardBaseUrl = request()->routeIs('tenant.domain.*')
-        ? route('tenant.domain.admin.dashboard')
-        : route('tenant.admin.dashboard', $tenant);
+    $dashboardBaseUrl = route('tenant.admin.dashboard');
     $baseSectionUrl = $dashboardBaseUrl.'?section='.$currentSection;
 @endphp
 
@@ -88,13 +86,13 @@
 @section('content')
     <section class="page-head">
         <div>
-            <h1>Admin Dashboard</h1>
-            <p>{{ $tenant->name }}</p>
+            <h1>{{ $tenant->name }}</h1>
+            <p>Internship Coordinator Dashboard - {{ $sections[$currentSection]['title'] }}</p>
         </div>
 
         <div class="page-mini-stats">
             <div class="page-mini-card">
-                <strong>Companies</strong>
+                <strong>Organizations</strong>
                 <span>{{ $stats['companies'] }}</span>
             </div>
             <div class="page-mini-card">
@@ -114,7 +112,7 @@
 
     @if ($errors->any())
         <div class="error-panel">
-            <strong>Some admin actions did not complete.</strong>
+            <strong>Some college portal updates did not complete.</strong>
             <ul style="margin:8px 0 0;padding-left:18px;">
                 @foreach ($errors->all() as $error)
                     <li>{{ $error }}</li>
@@ -127,6 +125,34 @@
         <div class="flash">{{ session('status') }}</div>
     @endif
 
+    @if ($currentSection === 'users')
+        <section class="chart-grid" style="margin-bottom:20px;">
+            <article class="section-card">
+                <div class="action-row">
+                    <h2>Tenant Admin RBAC</h2>
+                    <span class="pill">Tenant Scope</span>
+                </div>
+                <ul class="soft-list" style="margin-top:16px;">
+                    <li>Internship coordinators control tenant users only inside this college portal.</li>
+                    <li>You can activate, suspend, and reassign users between student, supervisor, and coordinator roles.</li>
+                    <li>Central superadmin still controls tenant creation, subscription, activation, and approved domains.</li>
+                </ul>
+            </article>
+
+            <article class="section-card">
+                <div class="action-row">
+                    <h2>Quick Access</h2>
+                    <span class="pill">RBAC UI</span>
+                </div>
+                <div class="action-row-actions" style="margin-top:16px;">
+                    <a class="button secondary" href="{{ $dashboardBaseUrl.'?section=students&create=students' }}">Create Student</a>
+                    <a class="button secondary" href="{{ $dashboardBaseUrl.'?section=supervisors&create=supervisors' }}">Create Supervisor</a>
+                    <a class="button secondary" href="{{ $dashboardBaseUrl.'?section=users' }}">Manage Roles</a>
+                </div>
+            </article>
+        </section>
+    @endif
+
     <section id="{{ $currentSection }}" class="content-stack section-anchor">
         <article class="section-card">
             <div class="action-row">
@@ -135,7 +161,7 @@
                     @if ($currentSection === 'users')
                         <a class="panel-link" href="{{ $dashboardBaseUrl.'?section=students&create=students' }}">Add Student</a>
                     @else
-                        <a class="panel-link" href="{{ $dashboardBaseUrl.'?section='.$currentSection.'&create='.$currentSection }}">Add</a>
+                        <a class="panel-link" href="{{ $dashboardBaseUrl.'?section='.$currentSection.'&create='.$currentSection }}">Add Record</a>
                     @endif
                 </div>
             </div>

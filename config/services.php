@@ -35,4 +35,13 @@ return [
         ],
     ],
 
+    'stripe' => [
+        'key' => env('STRIPE_KEY'),
+        'secret' => env('STRIPE_SECRET'),
+        'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
+        'local_bypass' => env('STRIPE_LOCAL_BYPASS', false),
+        'verify_ssl' => env('STRIPE_VERIFY_SSL', true),
+        'ca_bundle' => env('STRIPE_CA_BUNDLE'),
+    ],
+
 ];

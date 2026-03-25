@@ -12,7 +12,7 @@
     <section class="page-head">
         <div>
             <h1>Student Dashboard</h1>
-            <p>{{ $student->full_name }} &middot; {{ $student->partnerCompany?->name ?: 'No company assigned yet' }}</p>
+            <p>{{ $student->full_name }} &middot; {{ $student->partnerCompany?->name ?: 'No partner organization assigned yet' }}</p>
         </div>
 
         <div class="page-mini-stats">
@@ -25,11 +25,11 @@
                 <span>{{ $student->applications->count() }}</span>
             </div>
             <div class="page-mini-card">
-                <strong>Requirements</strong>
+                <strong>Forms & Requirements</strong>
                 <span>{{ $approvedRequirements }}</span>
             </div>
             <div class="page-mini-card">
-                <strong>Approved Logs</strong>
+                <strong>Approved Hours</strong>
                 <span>{{ $approvedLogs }}</span>
             </div>
         </div>
@@ -59,7 +59,7 @@
 
             @if ($activeApplication)
                 <div class="flash" style="margin-bottom:18px;">
-                    Your current active application is <strong>{{ strtoupper($activeApplication->status) }}</strong> for {{ $activeApplication->partnerCompany?->name ?: 'your selected company' }}.
+                    Your current active application is <strong>{{ strtoupper($activeApplication->status) }}</strong> for {{ $activeApplication->partnerCompany?->name ?: 'your selected organization' }}.
                 </div>
             @endif
 
@@ -67,18 +67,18 @@
                 <div class="section-card" style="margin:0;">
                     <h3>Apply for Internship</h3>
                     @if ($activeApplication)
-                        <p>Your current application is still active. Wait for the tenant admin to finish the review before sending another one.</p>
+                        <p>Your current application is still active. Wait for the internship coordinator to finish the review before sending another one.</p>
                         <div class="helper-note">
-                            Active application: {{ $activeApplication->partnerCompany?->name ?: 'Selected company' }} &middot; {{ strtoupper($activeApplication->status) }}
+                            Active application: {{ $activeApplication->partnerCompany?->name ?: 'Selected organization' }} &middot; {{ strtoupper($activeApplication->status) }}
                         </div>
                     @else
-                        <p>Browse tenant partner companies, pick a position, and attach your initial application documents.</p>
+                        <p>Browse partner organizations, pick a position, and attach your initial application documents.</p>
                         <form method="POST" action="{{ $studentApplicationAction }}" enctype="multipart/form-data">
                             @csrf
                             <label>
-                                Partner Company
+                                Partner Organization
                                 <select name="partner_company_id" required>
-                                    <option value="">Select a company</option>
+                                    <option value="">Select an organization</option>
                                     @foreach ($companies as $company)
                                         <option value="{{ $company->id }}" @selected((string) old('partner_company_id') === (string) $company->id)>{{ $company->name }}</option>
                                     @endforeach
@@ -90,15 +90,15 @@
                             <label>Endorsement Letter <input type="file" name="endorsement_letter" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"></label>
                             <label>MOA <input type="file" name="moa" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"></label>
                             <label>Clearance <input type="file" name="clearance" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"></label>
-                            <button type="submit" class="small-button">Submit Application</button>
+                            <button type="submit" class="small-button">Submit Internship Application</button>
                         </form>
                     @endif
                 </div>
 
                 <div class="section-card" style="margin:0;">
-                    <h3>Partner Companies</h3>
+                    <h3>Partner Organizations</h3>
                     @if ($companies->isEmpty())
-                        <p>No partner companies are available yet.</p>
+                        <p>No partner organizations on file yet.</p>
                     @else
                         <ul class="soft-list">
                             @foreach ($companies as $company)
@@ -110,7 +110,7 @@
                                     <p style="margin:10px 0 0;">{{ $company->industry ?: 'No industry type set' }}</p>
                                     <p style="margin:10px 0 0;">Positions: {{ implode(', ', $company->availablePositionsList()) ?: 'No positions listed' }}</p>
                                     <p style="margin:10px 0 0;">Required docs: {{ implode(', ', $company->requiredDocumentsList()) ?: 'No required documents listed' }}</p>
-                                    <p style="margin:10px 0 0;">Supervisor: {{ $company->supervisors->pluck('name')->implode(', ') ?: ($company->contact_person ?: 'No supervisor listed') }}</p>
+                                    <p style="margin:10px 0 0;">Company Supervisor: {{ $company->supervisors->pluck('name')->implode(', ') ?: ($company->contact_person ?: 'No company supervisor listed') }}</p>
                                 </li>
                             @endforeach
                         </ul>
@@ -126,7 +126,7 @@
                     <table>
                         <thead>
                             <tr>
-                                <th>Company</th>
+                                <th>Organization</th>
                                 <th>Position</th>
                                 <th>Status</th>
                                 <th>Applied</th>
@@ -137,7 +137,7 @@
                         <tbody>
                             @foreach ($student->applications as $application)
                                 <tr>
-                                    <td>{{ $application->partnerCompany?->name ?: 'No company' }}</td>
+                                    <td>{{ $application->partnerCompany?->name ?: 'No organization' }}</td>
                                     <td>{{ $application->position_applied ?: 'Not set' }}</td>
                                     <td><span class="badge">{{ strtoupper($application->status) }}</span></td>
                                     <td>{{ $application->applied_at?->format('M d, Y') ?: 'Not set' }}</td>
@@ -157,7 +157,7 @@
                                             @endif
                                         </div>
                                     </td>
-                                    <td>{{ $application->admin_feedback ?: 'Waiting for admin review' }}</td>
+                                    <td>{{ $application->admin_feedback ?: 'Waiting for coordinator review' }}</td>
                                 </tr>
                             @endforeach
                         </tbody>
@@ -168,26 +168,26 @@
 
         <article id="requirements" class="section-card section-anchor">
             <div class="section-header">
-                <h2>Document Submission &amp; Evaluation</h2>
+                <h2>Forms & Requirements</h2>
                 <span class="pill">{{ $approvedRequirements }} approved</span>
             </div>
 
             <div class="two-column-layout">
                 <div class="section-card" style="margin:0;">
-                    <h3>Upload Requirement</h3>
+                    <h3>Upload Form or Requirement</h3>
                     <form method="POST" action="{{ $studentRequirementAction }}" enctype="multipart/form-data">
                         @csrf
                         <label>Requirement Name <input type="text" name="requirement_name" value="{{ old('requirement_name', 'Resume') }}" placeholder="Resume, MOA, Weekly Report, Monthly Report" required></label>
-                        <label>Notes <textarea name="notes" placeholder="Optional context for the admin reviewer">{{ old('notes') }}</textarea></label>
+                        <label>Notes <textarea name="notes" placeholder="Optional context for the coordinator reviewer">{{ old('notes') }}</textarea></label>
                         <label>File <input type="file" name="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" required></label>
                         <button type="submit" class="small-button">Upload Document</button>
                     </form>
                 </div>
 
                 <div class="section-card" style="margin:0;">
-                    <h3>Document Queue</h3>
+                    <h3>Submission Queue</h3>
                     @if ($student->requirements->isEmpty())
-                        <p>No requirements submitted yet.</p>
+                        <p>No forms or requirements submitted yet.</p>
                     @else
                         <ul class="soft-list">
                             @foreach ($student->requirements as $requirement)
@@ -214,12 +214,12 @@
 
         <article id="logs" class="section-card section-anchor">
             <div class="section-header">
-                <h2>Hour Logs</h2>
+                <h2>Progress & Hours</h2>
                 <span class="pill">{{ $student->student_number }}</span>
             </div>
 
             @if ($student->hourLogs->isEmpty())
-                <p>No hour logs yet.</p>
+                <p>No progress or hour logs yet.</p>
             @else
                 <table>
                     <thead>

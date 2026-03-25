@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 
 class Tenant extends Model
@@ -11,10 +13,7 @@ class Tenant extends Model
 
     protected $fillable = [
         'name',
-        'slug',
         'code',
-        'domain',
-        'subdomain',
         'plan',
         'subscription_starts_at',
         'subscription_expires_at',
@@ -39,24 +38,46 @@ class Tenant extends Model
 
     public function getRouteKeyName(): string
     {
-        return 'slug';
+        return 'id';
     }
 
-    public function matchesDomain(?string $host): bool
+    public function domains(): HasMany
     {
-        return $this->matchesHost($host);
+        return $this->hasMany(TenantDomain::class)->orderByDesc('is_primary')->orderBy('host');
     }
 
-    public function matchesHost(?string $host): bool
+    public function primaryDomain(): HasOne
     {
-        $host = (string) $host;
+        $domain = new TenantDomain();
 
-        if (filled($this->domain) && strcasecmp($this->domain, $host) === 0) {
-            return true;
+        return $this->hasOne(TenantDomain::class)
+            ->where($domain->qualifyColumn('is_primary'), true)
+            ->where($domain->qualifyColumn('is_active'), true);
+    }
+
+    public function primaryHost(): ?string
+    {
+        $domain = $this->relationLoaded('primaryDomain')
+            ? $this->primaryDomain
+            : $this->primaryDomain()->first();
+
+        if ($domain?->host) {
+            return $domain->host;
         }
 
-        return filled($this->subdomain)
-            && strcasecmp($this->subdomain.'.'.config('tenancy.local_domain_suffix', 'localhost'), $host) === 0;
+        if ($this->relationLoaded('domains')) {
+            return optional($this->domains->firstWhere('is_active', true))->host;
+        }
+
+        $domain = new TenantDomain();
+
+        return optional(
+            $this->domains()
+                ->where($domain->qualifyColumn('is_active'), true)
+                ->orderByDesc($domain->qualifyColumn('is_primary'))
+                ->orderBy($domain->qualifyColumn('host'))
+                ->first()
+        )->host;
     }
 
     public function subscriptionHasStarted(): bool
@@ -98,10 +119,10 @@ class Tenant extends Model
     public function subscriptionBlockMessage(): string
     {
         return match ($this->subscriptionStatus()) {
-            'suspended' => 'This tenant subscription is suspended.',
-            'scheduled' => 'This tenant subscription has not started yet.',
-            'expired' => 'This tenant subscription has expired.',
-            default => 'This tenant is currently unavailable.',
+            'suspended' => 'This college\'s access to the practicum portal has been suspended. Please contact the BukSU University Admin.',
+            'scheduled' => 'Access to this college portal has not been activated yet.',
+            'expired' => 'This college\'s portal access has expired. Please contact the University Admin for renewal.',
+            default => 'This college portal is currently unavailable.',
         };
     }
 }

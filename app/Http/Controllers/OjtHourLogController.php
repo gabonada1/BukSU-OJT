@@ -47,7 +47,7 @@ class OjtHourLogController extends Controller
             $tenant,
             'admin.dashboard',
             ['section' => 'hours'],
-            'OJT hours logged.'
+            'OJT hour log recorded.'
         );
     }
 

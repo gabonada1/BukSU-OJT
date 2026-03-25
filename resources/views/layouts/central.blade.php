@@ -6,8 +6,9 @@
     $centralCurrentSection = request()->query('section', 'overview');
     $centralNavigation = [
         ['label' => 'Overview', 'href' => route('central.dashboard').'?section=overview', 'key' => 'overview'],
-        ['label' => 'Provision', 'href' => route('central.dashboard').'?section=provision', 'key' => 'provision'],
-        ['label' => 'Directory', 'href' => route('central.dashboard').'?section=directory', 'key' => 'directory'],
+        ['label' => 'Applications', 'href' => route('central.dashboard').'?section=applications', 'key' => 'applications'],
+        ['label' => 'Tenant Directory', 'href' => route('central.dashboard').'?section=directory', 'key' => 'directory'],
+        ['label' => 'Role Permissions', 'href' => route('central.rbac.index'), 'active' => request()->routeIs('central.rbac.*')],
     ];
 @endphp
 <!DOCTYPE html>
@@ -15,7 +16,7 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>{{ $pageTitle ?? config('app.name', 'BukSU Practicum') }}</title>
+        <title>{{ $pageTitle ?? config('app.name', 'BukSU Practicum Portal') }}</title>
         @include('layouts.partials.app-theme')
     </head>
     <body class="theme-{{ $layoutMode }}">
@@ -31,26 +32,27 @@
                                     <img src="{{ $systemLogo }}" alt="BukSU Logo" class="brand-logo-image">
                                 </div>
                                 <div>
-                                    <strong>Central Application</strong>
-                                    <span>BukSU Control Layer</span>
+                                    <strong>BukSU Practicum Portal</strong>
+                                    <span>University Administration</span>
+                                    <small class="brand-university-label">Bukidnon State University</small>
                                 </div>
                             </div>
                         </div>
 
-                        <nav class="sidebar-nav" aria-label="Central navigation">
+                        <nav class="sidebar-nav" aria-label="University administration navigation">
                             @foreach ($centralNavigation as $item)
-                                <a class="sidebar-link {{ $item['key'] === $centralCurrentSection ? 'active' : '' }}" href="{{ $item['href'] }}">{{ $item['label'] }}</a>
+                                <a class="sidebar-link {{ (($item['key'] ?? null) === $centralCurrentSection || ($item['active'] ?? false)) ? 'active' : '' }}" href="{{ $item['href'] }}">{{ $item['label'] }}</a>
                             @endforeach
                         </nav>
 
                         <div class="central-meta-row">
                             <div class="central-meta">
                                 <strong>Signed In</strong>
-                                <span>{{ $centralActor?->name ?: 'Superadmin' }}</span>
+                                <span>{{ $centralActor?->name ?: 'University Admin' }}</span>
                             </div>
                             <div class="central-meta">
-                                <strong>Workspace</strong>
-                                <span>Tenant Registry</span>
+                                <strong>Role</strong>
+                                <span>Superadmin</span>
                             </div>
                             <form method="POST" action="{{ route('central.logout') }}" class="chrome-inline-form">
                                 @csrf

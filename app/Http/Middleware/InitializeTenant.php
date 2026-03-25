@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\Tenant;
+use App\Models\TenantDomain;
 use App\Support\Tenancy\CurrentTenant;
 use App\Support\Tenancy\TenantDatabaseManager;
 use Closure;
@@ -20,26 +21,27 @@ class InitializeTenant
     public function handle(Request $request, Closure $next): Response
     {
         $tenant = $request->route('tenant');
+        $isCentralHost = in_array($request->getHost(), config('tenancy.central_domains', []), true);
+
+        if ($isCentralHost && ! $tenant) {
+            return $next($request);
+        }
 
         if (! $tenant instanceof Tenant) {
-            $tenant = Tenant::query()
-                ->when(
-                    filled($tenant),
-                    fn ($query) => $query->where('slug', $tenant),
-                    function ($query) use ($request) {
-                        $host = $request->getHost();
-                        $localHost = $this->localSubdomainFromHost($host);
+            if (filled($tenant)) {
+                $tenant = Tenant::query()->whereKey($tenant)->firstOrFail();
+            } else {
+                $tenantDomain = TenantDomain::query()
+                    ->active()
+                    ->whereRaw('LOWER(host) = ?', [strtolower($request->getHost())])
+                    ->first();
 
-                        $query->where(function ($inner) use ($host, $localHost) {
-                            $inner->where('domain', $host);
+                if (! $tenantDomain) {
+                    return $next($request);
+                }
 
-                            if (filled($localHost)) {
-                                $inner->orWhere('subdomain', $localHost);
-                            }
-                        });
-                    }
-                )
-                ->firstOrFail();
+                $tenant = $tenantDomain->tenant;
+            }
         }
 
         if (! $tenant->canAccessTenantApp()) {
@@ -53,18 +55,5 @@ class InitializeTenant
         $this->currentTenant->set($tenant);
 
         return $next($request);
-    }
-
-    protected function localSubdomainFromHost(string $host): ?string
-    {
-        $suffix = '.'.ltrim(config('tenancy.local_domain_suffix', 'localhost'), '.');
-
-        if (! str_ends_with($host, $suffix)) {
-            return null;
-        }
-
-        $subdomain = substr($host, 0, -strlen($suffix));
-
-        return filled($subdomain) ? $subdomain : null;
     }
 }

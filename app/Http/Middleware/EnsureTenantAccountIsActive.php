@@ -13,6 +13,9 @@ class EnsureTenantAccountIsActive
     public function handle(Request $request, Closure $next): Response
     {
         $tenant = app(CurrentTenant::class)->tenant() ?? $request->route('tenant');
+        $tenantKey = method_exists($tenant, 'getRouteKey')
+            ? (string) $tenant->getRouteKey()
+            : (filled($tenant) ? (string) $tenant : null);
 
         foreach (['tenant_admin', 'supervisor', 'student'] as $guard) {
             $user = Auth::guard($guard)->user();
@@ -23,17 +26,13 @@ class EnsureTenantAccountIsActive
 
             $sessionTenant = $request->session()->get("tenant_context.{$guard}");
 
-            if ($tenant && $sessionTenant && $sessionTenant !== $tenant->slug) {
+            if ($tenantKey && $sessionTenant && $sessionTenant !== $tenantKey) {
                 Auth::guard($guard)->logout();
                 $request->session()->forget("tenant_context.{$guard}");
                 $request->session()->regenerate();
 
-                $path = ! in_array($request->getHost(), config('tenancy.central_domains', []), true)
-                    ? '/login'
-                    : '/tenants/'.($tenant->slug ?? config('tenancy.default_tenant_slug')).'/login';
-
-                return redirect($path)->withErrors([
-                    'email' => 'Your session belonged to a different tenant. Please sign in again for this tenant.',
+                return redirect('/login')->withErrors([
+                    'email' => 'Your session belonged to a different college portal. Please sign in again for this college.',
                 ]);
             }
 
@@ -43,12 +42,8 @@ class EnsureTenantAccountIsActive
                 $request->session()->invalidate();
                 $request->session()->regenerateToken();
 
-                $path = ! in_array($request->getHost(), config('tenancy.central_domains', []), true)
-                    ? '/login'
-                    : '/tenants/'.($tenant?->slug ?? config('tenancy.default_tenant_slug')).'/login';
-
-                return redirect($path)->withErrors([
-                    'email' => 'This account is no longer allowed to access the tenant workspace.',
+                return redirect('/login')->withErrors([
+                    'email' => 'This account is no longer allowed to access the college portal.',
                 ]);
             }
         }

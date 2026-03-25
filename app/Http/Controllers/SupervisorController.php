@@ -41,7 +41,7 @@ class SupervisorController extends Controller
             $tenant,
             'admin.dashboard',
             ['section' => 'supervisors'],
-            'Supervisor added.'
+            'Company supervisor added.'
         );
     }
 
@@ -81,7 +81,7 @@ class SupervisorController extends Controller
             $tenant,
             'admin.dashboard',
             ['section' => 'supervisors'],
-            'Supervisor updated.'
+            'Company supervisor updated.'
         );
     }
 
@@ -96,7 +96,7 @@ class SupervisorController extends Controller
 
         if ($emailTaken) {
             throw ValidationException::withMessages([
-                'email' => 'This email is already being used by another tenant account.',
+                'email' => 'This email is already being used by another college portal account.',
             ]);
         }
     }

@@ -11,7 +11,7 @@ class TenantUploadManager
 {
     public function store(UploadedFile $file, Tenant $tenant, string $segment): string
     {
-        $directory = 'uploads/tenants/'.$tenant->slug.'/'.trim($segment, '/');
+        $directory = 'uploads/tenants/'.$tenant->getRouteKey().'/'.trim($segment, '/');
         $absoluteDirectory = public_path($directory);
 
         File::ensureDirectoryExists($absoluteDirectory);
