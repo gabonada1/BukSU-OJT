@@ -274,16 +274,29 @@ class PlanApplicationController extends Controller
     protected function resolvedDomainHosts(array $validated, ?TenantPlanApplication $application = null): array
     {
         $hosts = [];
+        $subdomain = $validated['subdomain'] ?? ($application?->preferred_subdomain);
+        $customDomain = $validated['domain'] ?? null;
 
-        if (filled($validated['domain'] ?? null)) {
-            $hosts[] = strtolower(trim((string) $validated['domain']));
+        // Priority order for primary domain:
+        // 1. Custom domain if provided (user's explicit choice)
+        // 2. Localhost subdomain if subdomain provided (for local dev without hosts file)
+        // 3. LVH.ME variants as backup
+
+        if (filled($customDomain)) {
+            $hosts[] = strtolower(trim((string) $customDomain));
+        } elseif (filled($subdomain)) {
+            // Use localhost subdomain as primary for local development
+            $hosts[] = strtolower(trim((string) $subdomain)) . '.localhost';
         }
 
-        $hosts = array_merge($hosts, $this->tenantUrlGenerator->localAliasHosts(
-            $validated['subdomain'] ?? ($application?->preferred_subdomain),
+        // Add all local alias hosts (will include localhost and .lvh.me variants)
+        $localAliases = $this->tenantUrlGenerator->localAliasHosts(
+            $subdomain,
             $application?->college_name,
             null,
-        ));
+        );
+
+        $hosts = array_merge($hosts, $localAliases);
 
         return array_values(array_unique(array_filter($hosts)));
     }

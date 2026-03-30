@@ -104,9 +104,8 @@ When the BukSU University Admin registers a new college from the central dashboa
 
 | College | Code | License Tier | Approved Domains | Database | Status |
 | --- | --- | --- | --- | --- | --- |
-| College of Business | COLLEG | PRO | cob.lvh.me, cob, colleg.lvh.me | buksu_college_of_business | Active |
-| College of Nursing | CON | PREMIUM | nursing, con.lvh.me, nursing.lvh.me | buksu_college_of_nursing | Inactive |
-| College of Technology | COT | PREMIUM | n/a | buksu_college_of_technology | Active |
+| College of Business | COB | PREMIUM | n/a | buksu_college_of_business | Active |
+| College of Technology | COT | PREMIUM | cot.lvh.me, cot.localhost | buksu_college_of_technology | Active |
 
 ## 8. Seeded Local Credentials
 

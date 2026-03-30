@@ -56,14 +56,20 @@ class TenantUrlGenerator
 
         $hosts = collect();
 
+        // Add subdomain if provided
         if (filled($subdomain)) {
             $hosts->push($this->subdomainHost((string) $subdomain));
         }
 
+        // Add code-based subdomain with both localhost and the configured suffix
         $resolvedCode = filled($code) ? (string) $code : (filled($tenantName) ? $this->acronymCode((string) $tenantName) : null);
 
         if (filled($resolvedCode)) {
-            $hosts->push($this->subdomainHost(Str::lower((string) $resolvedCode)));
+            $codeSubdomain = Str::lower((string) $resolvedCode);
+            // Add .lvh.me version
+            $hosts->push($this->subdomainHost($codeSubdomain));
+            // Add .localhost version as well (but won't be primary unless explicitly chosen)
+            $hosts->push($codeSubdomain . '.localhost');
         }
 
         return $hosts
@@ -82,16 +88,27 @@ class TenantUrlGenerator
             return $host;
         }
 
-        $preferredSuffix = '.'.$this->hostnameSuffix();
         $domains = $tenant->relationLoaded('domains')
             ? $tenant->domains
             : $tenant->domains()->get();
 
-        $preferred = $domains
+        $activeDomains = $domains
             ->where('is_active', true)
             ->sortByDesc('is_primary')
             ->pluck('host')
             ->map(fn (string $candidate) => strtolower(trim($candidate)))
+            ->all();
+
+        // Prefer localhost domains first, then the configured suffix (.lvh.me)
+        $localhost = collect($activeDomains)
+            ->first(fn (string $candidate) => str_ends_with($candidate, '.localhost'));
+
+        if ($localhost) {
+            return $localhost;
+        }
+
+        $preferredSuffix = '.'.$this->hostnameSuffix();
+        $preferred = collect($activeDomains)
             ->first(fn (string $candidate) => str_ends_with($candidate, $preferredSuffix));
 
         return $preferred ?: $host;
