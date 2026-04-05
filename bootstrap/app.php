@@ -39,6 +39,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'central.domain' => \App\Http\Middleware\EnsureCentralDomain::class,
             'tenant.domain' => \App\Http\Middleware\EnsureTenantDomain::class,
             'tenant.account' => \App\Http\Middleware\EnsureTenantAccountIsActive::class,
+            'tenant.password.updated' => \App\Http\Middleware\EnsureTenantPasswordIsUpdated::class,
         ]);
 
         $middleware->prependToPriorityList(Authenticate::class, \App\Http\Middleware\EnsureTenantDomain::class);
@@ -75,9 +76,16 @@ return Application::configure(basePath: dirname(__DIR__))
                 return '/central/dashboard';
             }
 
-            return $isCentralHost && $isCentralPath
-                ? '/central/dashboard'
-                : '/login';
+            if ($isCentralHost && $isCentralPath) {
+                return '/central/dashboard';
+            }
+
+            return match (true) {
+                auth('tenant_admin')->check() => '/admin/dashboard',
+                auth('supervisor')->check() => '/supervisor/dashboard',
+                auth('student')->check() => '/student/dashboard',
+                default => '/login',
+            };
         });
     })
     ->withExceptions(function (Exceptions $exceptions): void {

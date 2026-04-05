@@ -6,25 +6,29 @@
 @extends('layouts.tenant')
 
 @section('content')
-    <section class="page-head">
-        <div>
+    <section class="admin-hero">
+        <div class="admin-hero-copy">
+            <span class="admin-eyebrow">Supervisor Workspace</span>
             <h1>Company Supervisor Dashboard</h1>
-            <p>{{ $supervisor->name }} &middot; {{ $company?->name ?: 'No partner organization assigned yet' }}</p>
+            <p>{{ $supervisor->name }} | {{ $company?->name ?: 'No partner organization assigned yet' }}</p>
         </div>
 
-        <div class="page-mini-stats">
-            <div class="page-mini-card">
-                <strong>Students</strong>
-                <span>{{ $students->count() }}</span>
-            </div>
-            <div class="page-mini-card">
-                <strong>Hour Logs</strong>
-                <span>{{ $hourLogs->count() }}</span>
-            </div>
-            <div class="page-mini-card">
-                <strong>Approved</strong>
-                <span>{{ number_format($validatedHours, 0) }}</span>
-            </div>
+        <div class="admin-hero-metrics">
+            <article class="admin-hero-panel">
+                <span>Students</span>
+                <strong>{{ $students->count() }}</strong>
+                <small>Interns assigned to your company</small>
+            </article>
+            <article class="admin-hero-panel">
+                <span>Hour Logs</span>
+                <strong>{{ $hourLogs->count() }}</strong>
+                <small>Recent submissions waiting for review</small>
+            </article>
+            <article class="admin-hero-panel">
+                <span>Approved</span>
+                <strong>{{ number_format($validatedHours, 0) }}</strong>
+                <small>Hours already validated</small>
+            </article>
         </div>
     </section>
 

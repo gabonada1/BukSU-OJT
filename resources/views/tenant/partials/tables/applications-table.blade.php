@@ -1,6 +1,7 @@
 @php
     $embedded = $embedded ?? false;
     $showHeading = $showHeading ?? true;
+    $applicationSection = $applicationSection ?? 'applications';
 @endphp
 
 @unless ($embedded)
@@ -37,7 +38,7 @@
                                 @endif
                             </div>
                         </td>
-                        <td><a class="panel-link" href="{{ $dashboardBaseUrl.'?section=applications&edit='.$application->id }}">Edit</a></td>
+                        <td><a class="panel-link" href="{{ $dashboardBaseUrl.'?section='.$applicationSection.'&edit='.$application->id }}">Edit</a></td>
                     </tr>
                 @endforeach
             </tbody>

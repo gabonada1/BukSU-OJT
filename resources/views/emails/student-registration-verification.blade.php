@@ -1,7 +1,7 @@
 <x-email-shell
     eyebrow="Student Verification"
     title="Verify your student registration"
-    subtitle="Finish activating your BukSU Practicum Portal student account for {{ $tenant->name }} by confirming your email address."
+    subtitle="Finish activating your University Practicum student account for {{ $tenant->name }} by confirming your email address."
 >
     <p>Hello {{ $student->full_name }},</p>
 

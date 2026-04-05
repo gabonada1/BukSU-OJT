@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\AuthorizesTenantPermissions;
 use App\Models\Course;
 use App\Models\InternshipApplication;
 use App\Models\OjtHourLog;
@@ -15,11 +16,14 @@ use Illuminate\View\View;
 
 class TenantDashboardController extends Controller
 {
+    use AuthorizesTenantPermissions;
+
     public function __invoke(CurrentTenant $currentTenant): View
     {
         $tenant = $currentTenant->tenant();
 
         abort_unless($tenant, 404);
+        $this->authorizeTenantPermission('user.read', $tenant);
 
         $companies = PartnerCompany::query()->with('supervisors')->latest()->get();
         $students = Student::query()->with(['partnerCompany', 'applications', 'course'])->latest()->get();
@@ -31,7 +35,14 @@ class TenantDashboardController extends Controller
         $userDirectory = $this->userDirectory($students, $supervisors);
         $currentSection = request()->query('section', 'companies');
         $editKey = request()->query('edit');
-        $portalTitle = data_get($tenant->settings, 'branding.portal_title', config('app.name', 'BukSU Practicum Portal'));
+        $studentApplicationStudentId = (int) request()->query('student_applications');
+        $portalTitle = data_get($tenant->settings, 'branding.portal_title', config('app.name', 'University Practicum'));
+        $selectedStudent = $studentApplicationStudentId > 0
+            ? $students->firstWhere('id', $studentApplicationStudentId)
+            : null;
+        $selectedStudentApplications = $selectedStudent
+            ? $applications->where('student_id', $selectedStudent->getKey())->values()
+            : collect();
 
         return view('tenant.admin.dashboard', [
             'tenant' => $tenant,
@@ -51,9 +62,9 @@ class TenantDashboardController extends Controller
                 'College-level monitoring for forms, reports, and evaluations',
             ],
             'databaseStrategy' => [
-                'The University Administration database stores the college registry, license tiers, platform settings, and shared authentication hooks.',
-                'Each college portal uses a dedicated database for partner companies, student applications, forms and requirements, progress reports, and evaluation forms.',
-                'The seeded college portals are College of Nursing, College of Business, College of Technologies, College of Public Administration, College of Education, and College of Arts & Sciences.',
+                'The University Administration database stores the university registry, license tiers, platform settings, and shared authentication hooks.',
+                'Each university portal uses a dedicated database for partner companies, student applications, forms and requirements, progress reports, and evaluation forms.',
+                'The sample tenant uses Bukidnon State University - College of Technologies.',
             ],
             'stats' => [
                 'companies' => $companies->count(),
@@ -67,6 +78,8 @@ class TenantDashboardController extends Controller
             'companies' => $companies,
             'students' => $students,
             'applications' => $applications,
+            'selectedStudentForApplications' => $selectedStudent,
+            'selectedStudentApplications' => $selectedStudentApplications,
             'courses' => $courses,
             'supervisors' => $supervisors,
             'requirements' => $requirements,
@@ -79,7 +92,7 @@ class TenantDashboardController extends Controller
             'userDirectory' => $userDirectory,
             'editing' => [
                 'companies' => $currentSection === 'companies' ? $companies->firstWhere('id', (int) $editKey) : null,
-                'applications' => $currentSection === 'applications' ? $applications->firstWhere('id', (int) $editKey) : null,
+                'applications' => $applications->firstWhere('id', (int) $editKey),
                 'supervisors' => $currentSection === 'supervisors' ? $supervisors->firstWhere('id', (int) $editKey) : null,
                 'students' => $currentSection === 'students' ? $students->firstWhere('id', (int) $editKey) : null,
                 'requirements' => $currentSection === 'requirements' ? $requirements->firstWhere('id', (int) $editKey) : null,

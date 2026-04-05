@@ -56,20 +56,8 @@ class TenantUrlGenerator
 
         $hosts = collect();
 
-        // Add subdomain if provided
         if (filled($subdomain)) {
             $hosts->push($this->subdomainHost((string) $subdomain));
-        }
-
-        // Add code-based subdomain with both localhost and the configured suffix
-        $resolvedCode = filled($code) ? (string) $code : (filled($tenantName) ? $this->acronymCode((string) $tenantName) : null);
-
-        if (filled($resolvedCode)) {
-            $codeSubdomain = Str::lower((string) $resolvedCode);
-            // Add .lvh.me version
-            $hosts->push($this->subdomainHost($codeSubdomain));
-            // Add .localhost version as well (but won't be primary unless explicitly chosen)
-            $hosts->push($codeSubdomain . '.localhost');
         }
 
         return $hosts
@@ -99,9 +87,17 @@ class TenantUrlGenerator
             ->map(fn (string $candidate) => strtolower(trim($candidate)))
             ->all();
 
-        // Prefer localhost domains first, then the configured suffix (.lvh.me)
+        $primaryHost = strtolower((string) ($host ?? ''));
+
+        if ($primaryHost !== '' && str_ends_with($primaryHost, '.localhost')) {
+            return $primaryHost;
+        }
+
+        // Prefer the most specific localhost domain first in local development.
         $localhost = collect($activeDomains)
-            ->first(fn (string $candidate) => str_ends_with($candidate, '.localhost'));
+            ->filter(fn (string $candidate) => str_ends_with($candidate, '.localhost'))
+            ->sortByDesc(fn (string $candidate) => strlen($candidate))
+            ->first();
 
         if ($localhost) {
             return $localhost;

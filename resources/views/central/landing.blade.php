@@ -7,50 +7,44 @@
 @extends('layouts.central')
 
 @section('content')
-    <section class="marketing-shell">
-        <section class="marketing-hero section-card">
-            <div class="marketing-hero-copy">
-                <div class="eyebrow">BukSU Practicum Portal</div>
-                <h1>Central landing for college plan applications, approvals, and tenant onboarding.</h1>
-                <p class="lead">
-                    This is the central application. Colleges can review plans, see the benefits of the system, and apply for a
-                    practicum portal. After Stripe test payment, the BukSU admin approves the request and provisions the tenant database.
-                </p>
+    <section class="lovable-landing">
+        <section class="lovable-landing-hero">
+            <div class="lovable-landing-copy">
+                <span class="admin-eyebrow">BukSU Admin System</span>
+                <h1>Multi-tenant practicum management for BukSU colleges.</h1>
+                <p>Centralized provisioning, approvals, subscriptions, and tenant onboarding with a darker interface aligned to your Lovable design direction.</p>
 
-                <div class="action-row-actions" style="margin-top:18px;">
+                <div class="admin-action-row">
                     <a href="#apply" class="button">Apply for a Plan</a>
                     <a href="{{ $centralLoginUrl }}" class="button secondary">Central Admin Login</a>
                 </div>
-
-                <div class="marketing-stat-grid">
-                    <article class="metric-card">
-                        <strong>{{ $stats['active_tenants'] }}</strong>
-                        <span>Active college tenants</span>
-                    </article>
-                    <article class="metric-card">
-                        <strong>{{ $stats['submitted_applications'] }}</strong>
-                        <span>Applications waiting for approval</span>
-                    </article>
-                    <article class="metric-card">
-                        <strong>{{ $stats['premium_tenants'] }}</strong>
-                        <span>Premium colleges already using the system</span>
-                    </article>
-                </div>
             </div>
 
-            <div class="marketing-hero-visual">
-                <div class="logo-showcase-frame marketing-showcase-frame">
-                    <img src="{{ $systemLogo }}" alt="BukSU Logo" class="logo-showcase-image">
-                </div>
-                <div class="mini-panel">
-                    <strong>What the system includes</strong>
-                    <ul class="soft-list" style="margin-top:12px;">
-                        <li>Partner company management</li>
-                        <li>Student applications and requirements</li>
-                        <li>Progress reports and OJT hour tracking</li>
-                        <li>Supervisor evaluation workflows</li>
-                    </ul>
-                </div>
+            <div class="lovable-landing-stats">
+                <article class="lovable-metric-card">
+                    <div>
+                        <span>Active Tenants</span>
+                        <strong>{{ $stats['active_tenants'] }}</strong>
+                        <small>Running university portals</small>
+                    </div>
+                    <div class="lovable-metric-icon">A</div>
+                </article>
+                <article class="lovable-metric-card">
+                    <div>
+                        <span>Pending Applications</span>
+                        <strong>{{ $stats['submitted_applications'] }}</strong>
+                        <small>Waiting for approval</small>
+                    </div>
+                    <div class="lovable-metric-icon">P</div>
+                </article>
+                <article class="lovable-metric-card">
+                    <div>
+                        <span>Premium Tenants</span>
+                        <strong>{{ $stats['premium_tenants'] }}</strong>
+                        <small>Advanced college workspaces</small>
+                    </div>
+                    <div class="lovable-metric-icon">M</div>
+                </article>
             </div>
         </section>
 
@@ -71,7 +65,7 @@
 
         <section class="pricing-grid">
             @foreach ($plans as $plan)
-                <article class="section-card plan-showcase-card">
+                <article class="admin-glass-card plan-showcase-card">
                     <div class="action-row">
                         <h2>{{ $plan['label'] }}</h2>
                         <span class="pill">PHP {{ number_format($plan['amount'] / 100, 2) }}</span>
@@ -86,9 +80,9 @@
             @endforeach
         </section>
 
-        <article class="section-card">
+        <article class="admin-glass-card">
             <div class="action-row">
-                <h2>Why Colleges Use It</h2>
+                <h2>Why Universities Use It</h2>
                 <span class="pill">Benefits</span>
             </div>
 
@@ -101,21 +95,21 @@
             </div>
         </article>
 
-        <article class="section-card" id="apply">
+        <article class="admin-glass-card" id="apply">
             <div class="action-row">
                 <h2>Apply for a Plan</h2>
                 <span class="pill">Stripe Test Payment</span>
             </div>
             <p class="section-hint">
-                Fill up the college application below. After Stripe test payment, the BukSU admin reviews your request and creates
+                Fill up the university application below. After Stripe test payment, Bukidnon State University reviews your request and creates
                 the tenant database, subdomain/domain record, and initial coordinator account.
             </p>
 
             <form method="POST" action="{{ $applyAction }}" class="form-grid" style="margin-top:16px;">
                 @csrf
                 <label class="field-span-2">
-                    College Name
-                    <input type="text" name="college_name" value="{{ old('college_name') }}" placeholder="College of Nursing" required>
+                    University Name
+                    <input type="text" name="college_name" value="{{ old('college_name') }}" placeholder="Bukidnon State University - College of Technologies" required>
                 </label>
                 <label>
                     Contact Person
@@ -123,7 +117,7 @@
                 </label>
                 <label>
                     Contact Email
-                    <input type="email" name="contact_email" value="{{ old('contact_email') }}" placeholder="dean@college.edu" required>
+                    <input type="email" name="contact_email" value="{{ old('contact_email') }}" placeholder="dean@buksu.edu.ph" required>
                 </label>
                 <label>
                     Contact Phone
@@ -131,7 +125,7 @@
                 </label>
                 <label>
                     Internship Coordinator Email
-                    <input type="email" name="admin_email" value="{{ old('admin_email') }}" placeholder="coordinator@college.edu" required>
+                    <input type="email" name="admin_email" value="{{ old('admin_email') }}" placeholder="coordinator@buksu.edu.ph" required>
                 </label>
                 <label>
                     Selected Plan
@@ -155,7 +149,7 @@
                 </label>
                 <label class="field-span-2">
                     Notes
-                    <textarea name="notes" rows="4" class="textarea-input" placeholder="Tell BukSU admin about your rollout timeline, special requirements, or preferred go-live date.">{{ old('notes') }}</textarea>
+                    <textarea name="notes" rows="4" class="textarea-input" placeholder="Tell Bukidnon State University about your rollout timeline, special requirements, or preferred go-live date.">{{ old('notes') }}</textarea>
                 </label>
                 <div class="field-span-2">
                     <button type="submit">Continue to Stripe Test Payment</button>

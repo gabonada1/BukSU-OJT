@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\AuthorizesTenantPermissions;
 use App\Http\Controllers\Concerns\InteractsWithTenantRouting;
 use App\Models\OjtHourLog;
 use App\Models\Student;
@@ -13,16 +14,17 @@ use Illuminate\Validation\Rule;
 
 class OjtHourLogController extends Controller
 {
-    use InteractsWithTenantRouting;
+    use AuthorizesTenantPermissions, InteractsWithTenantRouting;
 
     public function store(Request $request, CurrentTenant $currentTenant): RedirectResponse
     {
         $tenant = $currentTenant->tenant();
 
         abort_unless($tenant, 404);
+        $this->authorizeTenantPermission('hours.review', $tenant);
 
         $data = $request->validate([
-            'student_id' => ['required', 'integer', 'exists:tenant.students,id'],
+            'student_id' => ['required', 'integer', Rule::exists('tenant.tenant_users', 'id')->where('role', 'student')],
             'log_date' => ['required', 'date'],
             'hours' => ['required', 'numeric', 'min:0.5', 'max:24'],
             'activity' => ['required', 'string', 'max:1000'],
@@ -56,11 +58,12 @@ class OjtHourLogController extends Controller
         $tenant = $currentTenant->tenant();
 
         abort_unless($tenant, 404);
+        $this->authorizeTenantPermission('hours.review', $tenant);
 
         $previousApprovedHours = $hour->status === 'approved' ? (float) $hour->hours : 0.0;
 
         $data = $request->validate([
-            'student_id' => ['required', 'integer', 'exists:tenant.students,id'],
+            'student_id' => ['required', 'integer', Rule::exists('tenant.tenant_users', 'id')->where('role', 'student')],
             'log_date' => ['required', 'date'],
             'hours' => ['required', 'numeric', 'min:0.5', 'max:24'],
             'activity' => ['required', 'string', 'max:1000'],

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\AuthorizesTenantPermissions;
 use App\Http\Controllers\Concerns\InteractsWithTenantRouting;
 use App\Models\PartnerCompany;
 use App\Support\Tenancy\CurrentTenant;
@@ -10,25 +11,43 @@ use Illuminate\Http\Request;
 
 class PartnerCompanyController extends Controller
 {
-    use InteractsWithTenantRouting;
+    use AuthorizesTenantPermissions, InteractsWithTenantRouting;
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function validatedPayload(Request $request): array
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'industry' => ['nullable', 'string', 'max:255'],
+            'available_positions' => ['nullable', 'string', 'max:2500'],
+            'required_documents' => ['nullable', 'array'],
+            'required_documents.*' => ['string', 'max:255'],
+            'address' => ['nullable', 'string', 'max:255'],
+            'contact_person' => ['nullable', 'string', 'max:255'],
+            'contact_email' => ['nullable', 'email', 'max:255'],
+            'contact_phone' => ['nullable', 'string', 'max:255'],
+            'intern_slot_limit' => ['required', 'integer', 'min:1'],
+        ]);
+
+        $validated['required_documents'] = collect($validated['required_documents'] ?? [])
+            ->map(fn ($document) => trim((string) $document))
+            ->filter()
+            ->unique()
+            ->implode(PHP_EOL);
+
+        return $validated;
+    }
 
     public function store(Request $request, CurrentTenant $currentTenant): RedirectResponse
     {
         $tenant = $currentTenant->tenant();
 
         abort_unless($tenant, 404);
+        $this->authorizeTenantPermission('company.manage', $tenant);
 
-        PartnerCompany::query()->create($request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'industry' => ['nullable', 'string', 'max:255'],
-            'available_positions' => ['nullable', 'string', 'max:2500'],
-            'required_documents' => ['nullable', 'string', 'max:2500'],
-            'address' => ['nullable', 'string', 'max:255'],
-            'contact_person' => ['nullable', 'string', 'max:255'],
-            'contact_email' => ['nullable', 'email', 'max:255'],
-            'contact_phone' => ['nullable', 'string', 'max:255'],
-            'intern_slot_limit' => ['required', 'integer', 'min:1'],
-        ]) + [
+        PartnerCompany::query()->create($this->validatedPayload($request) + [
             'is_active' => true,
         ]);
 
@@ -46,18 +65,9 @@ class PartnerCompanyController extends Controller
         $tenant = $currentTenant->tenant();
 
         abort_unless($tenant, 404);
+        $this->authorizeTenantPermission('company.manage', $tenant);
 
-        $company->update($request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'industry' => ['nullable', 'string', 'max:255'],
-            'available_positions' => ['nullable', 'string', 'max:2500'],
-            'required_documents' => ['nullable', 'string', 'max:2500'],
-            'address' => ['nullable', 'string', 'max:255'],
-            'contact_person' => ['nullable', 'string', 'max:255'],
-            'contact_email' => ['nullable', 'email', 'max:255'],
-            'contact_phone' => ['nullable', 'string', 'max:255'],
-            'intern_slot_limit' => ['required', 'integer', 'min:1'],
-        ]));
+        $company->update($this->validatedPayload($request));
 
         return $this->redirectToTenantRoute(
             $request,

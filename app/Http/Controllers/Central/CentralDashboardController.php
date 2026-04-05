@@ -7,6 +7,7 @@ use App\Models\Tenant;
 use App\Models\TenantPlanApplication;
 use App\Support\Billing\PlanCatalog;
 use App\Support\Tenancy\TenantAdminContactResolver;
+use Illuminate\Support\Collection;
 use Illuminate\Contracts\View\View;
 
 class CentralDashboardController extends Controller
@@ -20,6 +21,9 @@ class CentralDashboardController extends Controller
     {
         $tenants = Tenant::query()->with(['domains', 'primaryDomain'])->latest()->get();
         $applications = TenantPlanApplication::query()->with(['tenant.domains', 'tenant.primaryDomain'])->latest()->get();
+        $tenantBandwidthProfiles = $tenants
+            ->map(fn (Tenant $tenant) => $this->bandwidthProfile($tenant))
+            ->keyBy('id');
         $tenantContacts = $tenants->mapWithKeys(function (Tenant $tenant): array {
             $contact = rescue(fn () => $this->contactResolver->contacts($tenant)->first(), report: false);
 
@@ -32,30 +36,86 @@ class CentralDashboardController extends Controller
         });
 
         return view('central.dashboard', [
-            'pageTitle' => 'BukSU University Admin | '.config('app.name', 'BukSU Practicum Portal'),
+            'pageTitle' => 'Bukidnon State University Administration | '.config('app.name', 'University Practicum'),
             'tenants' => $tenants,
             'applications' => $applications,
             'plans' => PlanCatalog::all(),
             'centralResponsibilities' => [
-                'Review incoming college plan applications and verify Stripe payments.',
-                'Approve applications to provision a tenant database and coordinator account.',
-                'Manage college registry metadata, subscriptions, and portal access from the central layer.',
+                'Review incoming university practicum applications and verify Stripe payments.',
+                'Approve applications to provision a university portal database and coordinator account.',
+                'Manage university registry metadata, subscriptions, and portal access from the central layer.',
             ],
             'tenantResponsibilities' => [
-                'Authenticate internship coordinators, company supervisors, and students inside each college portal.',
-                'Run practicum workflows using the college database, records, and dashboards.',
-                'Store college-specific partner organizations, student applications, forms and requirements, progress reports, and evaluations.',
+                'Authenticate internship coordinators, company supervisors, and students inside each university portal.',
+                'Run practicum workflows using the university database, records, and dashboards.',
+                'Store university-specific partner organizations, student applications, forms and requirements, progress reports, and evaluations.',
             ],
+            'bandwidthTotals' => $this->bandwidthTotals($tenantBandwidthProfiles),
             'stats' => [
                 'active_tenants' => $tenants->filter(fn (Tenant $tenant) => $tenant->canAccessTenantApp())->count(),
+                'suspended_tenants' => $tenants->filter(fn (Tenant $tenant) => $tenant->subscriptionStatus() === 'suspended')->count(),
+                'expiring_tenants' => $tenants->filter(fn (Tenant $tenant) => $tenant->subscription_expires_at?->isBetween(now()->startOfDay(), now()->addDays(30)->endOfDay()))->count(),
                 'pending_applications' => $applications->whereIn('status', ['submitted', 'pending_approval'])->count(),
                 'paid_applications' => $applications->where('payment_status', 'paid')->count(),
                 'premium_plans' => $tenants->where('plan', 'premium')->count(),
             ],
+            'planBandwidthDefaults' => $this->bandwidthDefaults(),
             'tenantContacts' => $tenantContacts,
-            'tenantCreateAction' => route('central.tenants.store'),
+            'tenantBandwidthProfiles' => $tenantBandwidthProfiles,
             'applicationReviewBaseUrl' => route('central.dashboard').'?section=applications',
             'logoutAction' => route('central.logout'),
         ]);
+    }
+
+    protected function bandwidthProfile(Tenant $tenant): array
+    {
+        $settings = is_array($tenant->settings) ? $tenant->settings : [];
+        $configuredLimit = data_get($settings, 'bandwidth.limit_gb');
+        $configuredUsed = data_get($settings, 'bandwidth.used_gb', 0);
+        $limit = max((float) ($configuredLimit ?? $this->defaultBandwidthForPlan($tenant->plan)), 1);
+        $used = max(min((float) $configuredUsed, $limit), 0);
+        $available = max($limit - $used, 0);
+        $utilization = $limit > 0 ? round(($used / $limit) * 100, 1) : 0.0;
+
+        return [
+            'id' => $tenant->getKey(),
+            'tenant' => $tenant,
+            'limit_gb' => $limit,
+            'used_gb' => $used,
+            'available_gb' => $available,
+            'utilization_pct' => $utilization,
+        ];
+    }
+
+    protected function bandwidthTotals(Collection $profiles): array
+    {
+        $allocated = (float) $profiles->sum('limit_gb');
+        $used = (float) $profiles->sum('used_gb');
+        $available = max($allocated - $used, 0);
+
+        return [
+            'allocated_gb' => $allocated,
+            'used_gb' => $used,
+            'available_gb' => $available,
+            'utilization_pct' => $allocated > 0 ? round(($used / $allocated) * 100, 1) : 0.0,
+        ];
+    }
+
+    protected function bandwidthDefaults(): array
+    {
+        return [
+            'basic' => $this->defaultBandwidthForPlan('basic'),
+            'pro' => $this->defaultBandwidthForPlan('pro'),
+            'premium' => $this->defaultBandwidthForPlan('premium'),
+        ];
+    }
+
+    protected function defaultBandwidthForPlan(?string $plan): float
+    {
+        return match ($plan) {
+            'basic' => 150,
+            'pro' => 400,
+            default => 1000,
+        };
     }
 }

@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\AuthorizesTenantPermissions;
 use App\Http\Controllers\Concerns\InteractsWithTenantRouting;
 use App\Mail\StudentCredentialsMail;
 use App\Models\Course;
 use App\Models\PartnerCompany;
 use App\Models\Student;
-use App\Models\Supervisor;
-use App\Models\TenantAdmin;
+use App\Models\TenantUser;
 use App\Support\Security\PasswordGenerator;
 use App\Support\Tenancy\CurrentTenant;
 use Illuminate\Http\RedirectResponse;
@@ -19,7 +19,7 @@ use Illuminate\Validation\ValidationException;
 
 class StudentController extends Controller
 {
-    use InteractsWithTenantRouting;
+    use AuthorizesTenantPermissions, InteractsWithTenantRouting;
 
     public function store(
         Request $request,
@@ -30,12 +30,13 @@ class StudentController extends Controller
         $tenant = $currentTenant->tenant();
 
         abort_unless($tenant, 404);
+        $this->authorizeTenantPermission('user.create', $tenant);
 
         $data = $request->validate([
-            'student_number' => ['required', 'string', 'max:255', 'unique:tenant.students,student_number'],
+            'student_number' => ['required', 'string', 'max:255', 'unique:tenant.tenant_users,student_number'],
             'first_name' => ['required', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:tenant.students,email'],
+            'email' => ['required', 'email', 'max:255', 'unique:tenant.tenant_users,email'],
             'password' => ['nullable', 'string', 'min:8'],
             'program' => ['nullable', 'string', 'max:255'],
             'course_id' => ['nullable', 'exists:tenant.courses,id'],
@@ -84,12 +85,13 @@ class StudentController extends Controller
         $tenant = $currentTenant->tenant();
 
         abort_unless($tenant, 404);
+        $this->authorizeTenantPermission('user.update', $tenant);
 
         $data = $request->validate([
-            'student_number' => ['required', 'string', 'max:255', Rule::unique('tenant.students', 'student_number')->ignore($student->getKey())],
+            'student_number' => ['required', 'string', 'max:255', Rule::unique('tenant.tenant_users', 'student_number')->ignore($student->getKey())],
             'first_name' => ['required', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', Rule::unique('tenant.students', 'email')->ignore($student->getKey())],
+            'email' => ['required', 'email', 'max:255', Rule::unique('tenant.tenant_users', 'email')->ignore($student->getKey())],
             'password' => ['nullable', 'string', 'min:8'],
             'program' => ['nullable', 'string', 'max:255'],
             'course_id' => ['nullable', 'exists:tenant.courses,id'],
@@ -133,16 +135,14 @@ class StudentController extends Controller
 
     protected function ensureEmailIsAvailable(string $email, ?int $ignoreStudentId = null): void
     {
-        $emailTaken = TenantAdmin::query()->where('email', $email)->exists()
-            || Supervisor::query()->where('email', $email)->exists()
-            || Student::query()
-                ->when($ignoreStudentId, fn ($query) => $query->whereKeyNot($ignoreStudentId))
-                ->where('email', $email)
-                ->exists();
+        $emailTaken = TenantUser::query()
+            ->when($ignoreStudentId, fn ($query) => $query->whereKeyNot($ignoreStudentId))
+            ->where('email', $email)
+            ->exists();
 
         if ($emailTaken) {
             throw ValidationException::withMessages([
-                'email' => 'This email is already being used by another college portal account.',
+                'email' => 'This email is already being used by another university portal account.',
             ]);
         }
     }

@@ -28,7 +28,7 @@
 
     <p>
         Important:
-        the tenant database, college portal, and coordinator login credentials are <strong>not created yet</strong>.
+        the tenant database, university portal, and coordinator login credentials are <strong>not created yet</strong>.
         They are only created after BukSU central admin approves your request.
     </p>
 

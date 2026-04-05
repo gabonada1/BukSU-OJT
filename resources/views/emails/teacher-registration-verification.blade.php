@@ -1,7 +1,7 @@
 <x-email-shell
     eyebrow="Company Supervisor Verification"
     title="Verify your company supervisor registration"
-    subtitle="Confirm your email address to activate your BukSU Practicum Portal company supervisor account for {{ $tenant->name }}."
+    subtitle="Confirm your email address to activate your University Practicum company supervisor account for {{ $tenant->name }}."
 >
     <p>Hello {{ $teacher->name }},</p>
 

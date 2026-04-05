@@ -80,7 +80,7 @@ class StripeCheckoutTest extends TestCase
                 && ($data['line_items[0][price_data][currency]'] ?? null) === 'php'
                 && ($data['line_items[0][price_data][unit_amount]'] ?? null) === 59900
                 && ($data['line_items[0][price_data][recurring][interval]'] ?? null) === 'month'
-                && ($data['line_items[0][price_data][product_data][name]'] ?? null) === 'BukSU Practicum Pro Plan';
+                && ($data['line_items[0][price_data][product_data][name]'] ?? null) === 'University Practicum Pro Plan';
         });
     }
 }

@@ -2,50 +2,29 @@
 
 namespace App\Models;
 
-use App\Models\Concerns\UsesTenantConnection;
-use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Notifications\Notifiable;
+use App\Models\Concerns\ScopesTenantUserRole;
 
-class TenantAdmin extends Authenticatable
+class TenantAdmin extends TenantUser
 {
-    use Notifiable, UsesTenantConnection;
-
-    protected $table = 'tenant_admins';
-
-    protected $fillable = [
-        'name',
-        'email',
-        'password',
-        'is_active',
-        'suspended_at',
-    ];
-
-    protected $hidden = [
-        'password',
-        'remember_token',
-    ];
-
-    protected function casts(): array
-    {
-        return [
-            'password' => 'hashed',
-            'is_active' => 'boolean',
-            'suspended_at' => 'datetime',
-        ];
-    }
+    use ScopesTenantUserRole;
 
     public function canAccessPortal(): bool
     {
-        return $this->is_active && ! $this->suspended_at;
+        return parent::canAccessPortal();
     }
 
     public function accountStatusLabel(): string
     {
-        return $this->canAccessPortal() ? 'active' : 'suspended';
+        return parent::accountStatusLabel();
     }
 
     public function canManageTenantUsers(): bool
     {
         return $this->canAccessPortal();
+    }
+
+    protected static function tenantUserRole(): string
+    {
+        return 'admin';
     }
 }

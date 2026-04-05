@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\AuthorizesTenantPermissions;
 use App\Http\Controllers\Concerns\InteractsWithTenantRouting;
 use App\Models\Course;
 use App\Support\Security\AuditLogger;
@@ -13,13 +14,14 @@ use Illuminate\Validation\Rule;
 
 class CourseController extends Controller
 {
-    use InteractsWithTenantRouting;
+    use AuthorizesTenantPermissions, InteractsWithTenantRouting;
 
     public function store(Request $request, CurrentTenant $currentTenant): RedirectResponse
     {
         $tenant = $currentTenant->tenant();
 
         abort_unless($tenant, 404);
+        $this->authorizeTenantPermission('user.update', $tenant);
 
         $validated = $request->validate([
             'code' => ['required', 'string', 'max:30', Rule::unique('tenant.courses', 'code')],
@@ -48,6 +50,7 @@ class CourseController extends Controller
         $tenant = $currentTenant->tenant();
 
         abort_unless($tenant, 404);
+        $this->authorizeTenantPermission('user.update', $tenant);
 
         $validated = $request->validate([
             'code' => ['required', 'string', 'max:30', Rule::unique('tenant.courses', 'code')->ignore($course->getKey())],
@@ -86,6 +89,7 @@ class CourseController extends Controller
         $tenant = $currentTenant->tenant();
 
         abort_unless($tenant, 404);
+        $this->authorizeTenantPermission('user.update', $tenant);
 
         if ($course->students()->exists()) {
             return $this->redirectToTenantRoute($request, $tenant, 'admin.profile.show')

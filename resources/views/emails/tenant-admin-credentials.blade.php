@@ -1,11 +1,11 @@
 <x-email-shell
     eyebrow="Internship Coordinator Account"
-    title="Your college portal account is ready"
+    title="Your university portal account is ready"
     subtitle="University Administration has finished registering {{ $tenant->name }} and generated the first Internship Coordinator credentials for you."
 >
     <p>Hello {{ $adminName }},</p>
 
-    <p>You can now sign in to the college portal with the credentials below.</p>
+    <p>You can now sign in to the university portal with the temporary credentials below.</p>
 
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:20px 0;border-collapse:separate;border-spacing:0 10px;">
         <tr>
@@ -27,8 +27,8 @@
     </table>
 
     <p style="margin:22px 0;">
-        <a href="{{ $loginUrl }}" style="display:inline-block;padding:12px 18px;background:#7B1C2E;color:#ffffff;text-decoration:none;border-radius:999px;font-weight:700;">Open College Portal</a>
+        <a href="{{ $loginUrl }}" style="display:inline-block;padding:12px 18px;background:#7B1C2E;color:#ffffff;text-decoration:none;border-radius:999px;font-weight:700;">Open University Portal</a>
     </p>
 
-    <p>Please sign in and change your password as soon as possible.</p>
+    <p>After your first sign in, the system will require you to create a new password before you can continue.</p>
 </x-email-shell>

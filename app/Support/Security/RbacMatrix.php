@@ -4,6 +4,8 @@ namespace App\Support\Security;
 
 class RbacMatrix
 {
+    public const TENANT_ADMIN_ROLE = 'tenant_admin';
+
     public static function definitions(): array
     {
         return [
@@ -39,7 +41,7 @@ class RbacMatrix
     public static function tenantRoles(): array
     {
         return [
-            'tenant_admin' => 'Tenant Admin',
+            self::TENANT_ADMIN_ROLE => 'Tenant Admin',
             'supervisor' => 'Supervisor',
             'student' => 'Student',
         ];
@@ -70,17 +72,33 @@ class RbacMatrix
     public static function defaultTenantMatrix(): array
     {
         return [
-            'user.read' => ['tenant_admin' => true, 'supervisor' => true, 'student' => false],
-            'user.create' => ['tenant_admin' => true, 'supervisor' => false, 'student' => false],
-            'user.update' => ['tenant_admin' => true, 'supervisor' => false, 'student' => false],
-            'user.suspend' => ['tenant_admin' => true, 'supervisor' => false, 'student' => false],
-            'user.role.assign' => ['tenant_admin' => true, 'supervisor' => false, 'student' => false],
-            'company.manage' => ['tenant_admin' => true, 'supervisor' => false, 'student' => false],
-            'application.manage' => ['tenant_admin' => true, 'supervisor' => true, 'student' => true],
-            'requirement.review' => ['tenant_admin' => true, 'supervisor' => true, 'student' => false],
-            'hours.review' => ['tenant_admin' => true, 'supervisor' => true, 'student' => false],
-            'report.view' => ['tenant_admin' => true, 'supervisor' => true, 'student' => true],
+            'user.read' => [self::TENANT_ADMIN_ROLE => true, 'supervisor' => true, 'student' => false],
+            'user.create' => [self::TENANT_ADMIN_ROLE => true, 'supervisor' => false, 'student' => false],
+            'user.update' => [self::TENANT_ADMIN_ROLE => true, 'supervisor' => false, 'student' => false],
+            'user.suspend' => [self::TENANT_ADMIN_ROLE => true, 'supervisor' => false, 'student' => false],
+            'user.role.assign' => [self::TENANT_ADMIN_ROLE => true, 'supervisor' => false, 'student' => false],
+            'company.manage' => [self::TENANT_ADMIN_ROLE => true, 'supervisor' => false, 'student' => false],
+            'application.manage' => [self::TENANT_ADMIN_ROLE => true, 'supervisor' => true, 'student' => true],
+            'requirement.review' => [self::TENANT_ADMIN_ROLE => true, 'supervisor' => true, 'student' => false],
+            'hours.review' => [self::TENANT_ADMIN_ROLE => true, 'supervisor' => true, 'student' => false],
+            'report.view' => [self::TENANT_ADMIN_ROLE => true, 'supervisor' => true, 'student' => true],
         ];
+    }
+
+    public static function tenantAllows($tenant, ?string $role, string $permission): bool
+    {
+        if (! $role) {
+            return false;
+        }
+
+        $definitions = array_intersect_key(self::definitions(), self::defaultTenantMatrix());
+        $matrix = self::normalize(
+            data_get($tenant?->settings, 'rbac.matrix', self::defaultTenantMatrix()),
+            self::tenantRoles(),
+            $definitions,
+        );
+
+        return (bool) ($matrix[$permission][$role] ?? false);
     }
 
     public static function normalize(array $matrix, array $roles, array $definitions): array

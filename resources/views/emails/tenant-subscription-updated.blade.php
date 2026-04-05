@@ -1,11 +1,11 @@
 <x-email-shell
     eyebrow="College Subscription Updated"
     title="Your college subscription details were updated"
-    subtitle="{{ $tenant->name }} has updated plan or renewal details from the BukSU central administration layer."
+    subtitle="{{ $tenant->name }} has updated plan or renewal details from the Bukidnon State University administration layer."
 >
     <p>Hello {{ $recipientName }},</p>
 
-    <p>The BukSU University Admin updated your college portal subscription settings.</p>
+    <p>Bukidnon State University Administration updated your university portal subscription settings.</p>
 
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:20px 0;border-collapse:separate;border-spacing:0 10px;">
         <tr>

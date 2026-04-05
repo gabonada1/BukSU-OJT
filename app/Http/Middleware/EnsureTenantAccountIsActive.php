@@ -32,7 +32,7 @@ class EnsureTenantAccountIsActive
                 $request->session()->regenerate();
 
                 return redirect('/login')->withErrors([
-                    'email' => 'Your session belonged to a different college portal. Please sign in again for this college.',
+                    'email' => 'Your session belonged to a different university portal. Please sign in again for this portal.',
                 ]);
             }
 
@@ -43,7 +43,7 @@ class EnsureTenantAccountIsActive
                 $request->session()->regenerateToken();
 
                 return redirect('/login')->withErrors([
-                    'email' => 'This account is no longer allowed to access the college portal.',
+                    'email' => 'This account is no longer allowed to access the university portal.',
                 ]);
             }
         }

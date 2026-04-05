@@ -1,11 +1,11 @@
 <x-email-shell
-    eyebrow="College Portal Activated"
+    eyebrow="University Portal Activated"
     title="College portal access has been restored"
     subtitle="{{ $tenant->name }} is active again and its coordinator accounts can sign in to the portal."
 >
     <p>Hello {{ $recipientName }},</p>
 
-    <p>The BukSU University Admin has reactivated your college portal.</p>
+    <p>Bukidnon State University Administration has reactivated your university portal.</p>
 
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:20px 0;border-collapse:separate;border-spacing:0 10px;">
         <tr>

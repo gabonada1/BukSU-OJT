@@ -14,7 +14,7 @@
             'label' => 'Basic',
             'summary' => 'Designed for smaller colleges or focused practicum programs.',
             'features' => [
-                'Up to 200 students per college portal',
+                'Up to 200 students per university portal',
                 'Partner organization management',
                 'Student OJT application submission',
                 'Document uploads (MOA, resume, clearance, etc.)',
@@ -28,7 +28,7 @@
             'label' => 'Pro',
             'summary' => 'For medium-sized colleges with more active practicum operations.',
             'features' => [
-                'Up to 500 students per college portal',
+                'Up to 500 students per university portal',
                 'All Basic college license features',
                 'Progress tracking dashboards for students and coordinators',
                 'Commenting and revision requests on documents and reports',
@@ -58,7 +58,7 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>College Portal Unavailable</title>
+        <title>University Portal Unavailable</title>
         <style>
             :root {
                 --page: #13131f;
@@ -310,7 +310,7 @@
         <main class="wrap">
             <section class="top">
                 <article class="panel">
-                    <span class="eyebrow">College Portal Access Paused</span>
+                    <span class="eyebrow">University Portal Access Paused</span>
                     <h1>{{ $tenant->name }}</h1>
                     <p>{{ $message }}</p>
 

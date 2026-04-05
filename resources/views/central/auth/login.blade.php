@@ -7,22 +7,14 @@
 @extends('layouts.central')
 
 @section('content')
-    <section class="login-stage">
-        <article class="login-panel">
-            <div class="login-panel-brand">
-                <img src="{{ $systemLogo }}" alt="BukSU Logo" class="login-panel-logo">
-                <div class="eyebrow">University Access</div>
-            </div>
-
-            <div class="login-panel-copy">
-                <h1>BukSU Practicum Portal</h1>
-                <p class="login-panel-subtitle">University Administration Access</p>
-                <p class="lead">
-                    Sign in to manage college registrations, monitor portal access, and oversee practicum operations
-                    across Bukidnon State University.
-                </p>
-                <div class="login-divider"></div>
-                <p class="login-university-tagline">Bukidnon State University - Office of Practicum Affairs</p>
+    <section class="lovable-auth-shell">
+        <article class="lovable-auth-card">
+            <div class="lovable-auth-brand">
+                <div class="console-brand-mark">
+                    <img src="{{ $systemLogo }}" alt="Bukidnon State University Logo" class="brand-logo-image">
+                </div>
+                <h1>BukSU Admin System</h1>
+                <p>University Administration Access</p>
             </div>
 
             @if ($errors->any())
@@ -36,45 +28,26 @@
                 </div>
             @endif
 
-            <form method="POST" action="{{ $loginAction }}" class="login-form">
+            <form method="POST" action="{{ $loginAction }}" class="login-form lovable-auth-form">
                 @csrf
                 <label>
                     Email
-                    <input type="email" name="email" value="{{ old('email') }}" placeholder="university-admin@lvh.me" required>
+                    <input type="email" name="email" value="{{ old('email') }}" placeholder="admin@buksu.edu.ph" required>
                 </label>
                 <label>
                     Password
-                    <input type="password" name="password" placeholder="Enter your University Administration password" required>
+                    <input type="password" name="password" placeholder="Enter your password" required>
                 </label>
                 <label class="checkline">
                     <input type="checkbox" name="remember" value="1">
                     Keep me signed in on this browser
                 </label>
-                <button type="submit">Sign In to University Administration</button>
+                <button type="submit">Sign In</button>
             </form>
 
-            <div class="login-support">
-                <strong>BukSU University Admin</strong>
-                <p>Manage college portals, license periods, and access from one institutional administration workspace.</p>
-                <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:14px;">
-                    <span class="pill">College Registry</span>
-                    <span class="pill">Portal Access</span>
-                    <span class="pill">License Tracking</span>
-                </div>
-            </div>
-        </article>
-
-        <article class="login-art">
-            <div class="logo-showcase">
-                <div class="logo-showcase-frame">
-                    <img src="{{ $systemLogo }}" alt="BukSU Logo" class="logo-showcase-image">
-                </div>
-                <div class="logo-showcase-copy">
-                    <div class="eyebrow">University Administration</div>
-                    <h3>BukSU Practicum Portal</h3>
-                    <p>College registration, portal lifecycle management, and practicum oversight in one BukSU system.</p>
-                    <span class="preview-chip">University Administration</span>
-                </div>
+            <div class="lovable-auth-note">
+                <strong>University Registry</strong>
+                <p>Manage college registrations, portal access, and subscription oversight from one superadmin workspace.</p>
             </div>
         </article>
     </section>

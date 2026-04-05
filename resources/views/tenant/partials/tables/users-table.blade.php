@@ -9,9 +9,9 @@
     @if ($showHeading)
         <h2>RBAC & User Management</h2>
     @endif
-    <p class="section-hint" style="margin:0 0 16px;">Tenant admins manage student, supervisor, and coordinator access for this college portal.</p>
+    <p class="section-hint" style="margin:0 0 16px;">Tenant admins manage student, supervisor, and coordinator access for this university portal.</p>
     @if ($userDirectory->isEmpty())
-        <p>No college portal users yet.</p>
+        <p>No university portal users yet.</p>
     @else
         <table>
             <thead><tr><th>Name</th><th>Role</th><th>Context</th><th>Verification</th><th>Status</th><th>Action</th></tr></thead>

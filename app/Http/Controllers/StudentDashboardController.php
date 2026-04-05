@@ -2,17 +2,22 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\AuthorizesTenantPermissions;
 use App\Models\PartnerCompany;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class StudentDashboardController extends Controller
 {
-    public function __invoke(): View
+    use AuthorizesTenantPermissions;
+
+    public function __invoke(Request $request): View
     {
         $student = Auth::guard('student')->user();
 
         abort_unless($student, 403);
+        $this->authorizeTenantPermission('report.view');
 
         $student->load([
             'partnerCompany',
@@ -28,13 +33,19 @@ class StudentDashboardController extends Controller
             ->get();
 
         $tenant = app(\App\Support\Tenancy\CurrentTenant::class)->tenant();
-        $portalTitle = data_get($tenant?->settings, 'branding.portal_title', config('app.name', 'BukSU Practicum Portal'));
+        $portalTitle = data_get($tenant?->settings, 'branding.portal_title', config('app.name', 'University Practicum'));
+        $section = $request->string('section')->toString();
+
+        if (! in_array($section, ['applications', 'requirements', 'logs'], true)) {
+            $section = 'applications';
+        }
 
         return view('tenant.student.dashboard', [
             'tenant' => $tenant,
             'pageTitle' => 'Student Dashboard | '.$portalTitle,
             'student' => $student,
             'companies' => $companies,
+            'currentSection' => $section,
             'studentApplicationAction' => route('tenant.student.applications.store'),
             'studentRequirementAction' => route('tenant.student.requirements.store'),
         ]);

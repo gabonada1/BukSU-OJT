@@ -13,9 +13,9 @@ class PlanCatalog
                 'amount' => self::amountFromEnv('PLAN_BASIC_AMOUNT', 29900),
                 'currency' => self::currencyFromEnv(),
                 'stripe_price_id' => self::stripePriceIdFromEnv('STRIPE_PRICE_BASIC'),
-                'summary' => 'Launch a college portal with the core practicum workflow and role dashboards.',
+                'summary' => 'Launch a university portal with the core practicum workflow and role dashboards.',
                 'features' => [
-                    'Separate tenant database for one college',
+                    'Separate tenant database for one university portal',
                     'Partner companies, student applications, and OJT hour tracking',
                     'Student requirements, reports, and supervisor evaluations',
                 ],
@@ -26,7 +26,7 @@ class PlanCatalog
                 'amount' => self::amountFromEnv('PLAN_PRO_AMOUNT', 59900),
                 'currency' => self::currencyFromEnv(),
                 'stripe_price_id' => self::stripePriceIdFromEnv('STRIPE_PRICE_PRO'),
-                'summary' => 'Adds stronger college customization and richer practicum coordination tools.',
+                'summary' => 'Adds stronger university customization and richer practicum coordination tools.',
                 'features' => [
                     'Everything in Basic',
                     'Course-based OJT hour settings and coordinator controls',
@@ -39,7 +39,7 @@ class PlanCatalog
                 'amount' => self::amountFromEnv('PLAN_PREMIUM_AMOUNT', 99900),
                 'currency' => self::currencyFromEnv(),
                 'stripe_price_id' => self::stripePriceIdFromEnv('STRIPE_PRICE_PREMIUM'),
-                'summary' => 'Best for colleges that want the full BukSU practicum experience and central visibility.',
+                'summary' => 'Best for universities that want the full University Practicum experience and central visibility.',
                 'features' => [
                     'Everything in Pro',
                     'Advanced oversight for coordinators and central administration',

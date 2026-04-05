@@ -37,7 +37,7 @@
                 </select>
             </label>
             <p class="field-hint">
-                This RBAC form lets the tenant admin change role and access state inside the current college portal while preserving the user's email and password.
+                This RBAC form lets the tenant admin change role and access state inside the current university portal while preserving the user's email and password.
             </p>
             <button type="submit" class="small-button">Save User</button>
         </form>

@@ -8,7 +8,7 @@ use App\Mail\TeacherRegistrationVerificationMail;
 use App\Models\Course;
 use App\Models\Student;
 use App\Models\Supervisor;
-use App\Models\TenantAdmin;
+use App\Models\TenantUser;
 use App\Support\Tenancy\CurrentTenant;
 use App\Support\Tenancy\TenantUrlGenerator;
 use Illuminate\Contracts\View\View;
@@ -36,7 +36,7 @@ class TenantRegistrationController extends Controller
             $selectedRole = null;
         }
 
-        $portalTitle = data_get($tenant->settings, 'branding.portal_title', config('app.name', 'BukSU Practicum Portal'));
+        $portalTitle = data_get($tenant->settings, 'branding.portal_title', config('app.name', 'University Practicum'));
 
         return view('tenant.auth.register', [
             'tenant' => $tenant,
@@ -81,7 +81,7 @@ class TenantRegistrationController extends Controller
                 $request,
                 $tenant,
                 'login.default',
-                status: 'Student registration received. Please check your email and verify your account before signing in to the college portal.'
+                status: 'Student registration received. Please check your email and verify your account before signing in to the university portal.'
             );
         }
 
@@ -97,7 +97,7 @@ class TenantRegistrationController extends Controller
             $request,
             $tenant,
             'login.default',
-            status: 'Company supervisor registration received. Please check your email and verify your account before signing in to the college portal.'
+            status: 'Company supervisor registration received. Please check your email and verify your account before signing in to the university portal.'
         );
     }
 
@@ -131,13 +131,11 @@ class TenantRegistrationController extends Controller
 
     protected function ensureEmailIsAvailable(string $email): void
     {
-        $emailTaken = TenantAdmin::query()->where('email', $email)->exists()
-            || Student::query()->where('email', $email)->exists()
-            || Supervisor::query()->where('email', $email)->exists();
+        $emailTaken = TenantUser::query()->where('email', $email)->exists();
 
         if ($emailTaken) {
             throw ValidationException::withMessages([
-                'email' => 'This email is already being used by another college portal account.',
+                'email' => 'This email is already being used by another university portal account.',
             ]);
         }
     }
@@ -145,10 +143,10 @@ class TenantRegistrationController extends Controller
     protected function registerStudent(Request $request, array $settings): Student
     {
         $data = $request->validate([
-            'student_number' => ['required', 'string', 'max:255', 'unique:tenant.students,student_number'],
+            'student_number' => ['required', 'string', 'max:255', 'unique:tenant.tenant_users,student_number'],
             'first_name' => ['required', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:tenant.students,email'],
+            'email' => ['required', 'email', 'max:255', 'unique:tenant.tenant_users,email'],
             'course_id' => ['nullable', 'exists:tenant.courses,id'],
             'program' => ['nullable', 'string', 'max:255'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
@@ -183,7 +181,7 @@ class TenantRegistrationController extends Controller
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:tenant.supervisors,email'],
+            'email' => ['required', 'email', 'max:255', 'unique:tenant.tenant_users,email'],
             'department' => ['required', 'string', 'max:255'],
             'position' => ['required', 'string', 'max:255'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],

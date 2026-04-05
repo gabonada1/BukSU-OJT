@@ -2,57 +2,13 @@
 
 namespace App\Models;
 
-use App\Models\Concerns\UsesTenantConnection;
+use App\Models\Concerns\ScopesTenantUserRole;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Notifications\Notifiable;
 
-class Student extends Authenticatable
+class Student extends TenantUser
 {
-    use Notifiable, UsesTenantConnection;
-
-    protected $fillable = [
-        'student_number',
-        'first_name',
-        'last_name',
-        'email',
-        'password',
-        'program',
-        'course_id',
-        'required_hours',
-        'completed_hours',
-        'status',
-        'partner_company_id',
-        'is_active',
-        'suspended_at',
-        'email_verified_at',
-        'email_verification_token',
-        'verification_sent_at',
-        'registered_at',
-        'registered_via_self_service',
-    ];
-
-    protected $hidden = [
-        'password',
-        'remember_token',
-        'email_verification_token',
-    ];
-
-    protected function casts(): array
-    {
-        return [
-            'password' => 'hashed',
-            'required_hours' => 'decimal:2',
-            'completed_hours' => 'decimal:2',
-            'is_active' => 'boolean',
-            'suspended_at' => 'datetime',
-            'email_verified_at' => 'datetime',
-            'verification_sent_at' => 'datetime',
-            'registered_at' => 'datetime',
-            'registered_via_self_service' => 'boolean',
-        ];
-    }
+    use ScopesTenantUserRole;
 
     public function partnerCompany(): BelongsTo
     {
@@ -91,21 +47,16 @@ class Student extends Authenticatable
 
     public function canAccessPortal(): bool
     {
-        return $this->is_active
-            && ! $this->suspended_at
-            && ! is_null($this->email_verified_at);
+        return parent::canAccessPortal();
     }
 
     public function accountStatusLabel(): string
     {
-        if ($this->suspended_at || ! $this->is_active) {
-            return 'suspended';
-        }
+        return parent::accountStatusLabel();
+    }
 
-        if (! $this->email_verified_at) {
-            return 'pending verification';
-        }
-
-        return 'active';
+    protected static function tenantUserRole(): string
+    {
+        return 'student';
     }
 }

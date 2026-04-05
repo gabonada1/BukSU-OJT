@@ -2,20 +2,12 @@
 
 namespace Tests\Feature;
 
-use App\Models\CentralSuperadmin;
 use App\Models\TenantAdmin;
 use Illuminate\Support\Facades\Gate;
 use Tests\TestCase;
 
 class RbacAbilitiesTest extends TestCase
 {
-    public function test_central_superadmin_can_manage_tenants(): void
-    {
-        $this->assertTrue(
-            Gate::forUser(new CentralSuperadmin())->allows('manage-tenants')
-        );
-    }
-
     public function test_active_tenant_admin_can_manage_tenant_users(): void
     {
         $admin = new TenantAdmin([

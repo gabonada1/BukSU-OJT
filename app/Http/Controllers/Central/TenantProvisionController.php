@@ -5,11 +5,10 @@ namespace App\Http\Controllers\Central;
 use App\Http\Controllers\Controller;
 use App\Mail\TenantActivatedMail;
 use App\Mail\TenantSubscriptionUpdatedMail;
-use App\Models\Student;
-use App\Models\Supervisor;
 use App\Models\Tenant;
 use App\Models\TenantAdmin;
 use App\Models\TenantDomain;
+use App\Models\TenantUser;
 use App\Support\Tenancy\TenantDatabaseManager;
 use App\Support\Tenancy\TenantProvisioner;
 use App\Support\Tenancy\TenantSubscriptionNotifier;
@@ -43,6 +42,8 @@ class TenantProvisionController extends Controller
             'plan' => ['required', Rule::in(['basic', 'pro', 'premium'])],
             'subscription_starts_at' => ['required', 'date'],
             'subscription_expires_at' => ['nullable', 'date', 'after_or_equal:subscription_starts_at'],
+            'bandwidth_limit_gb' => ['required', 'numeric', 'min:1', 'max:100000'],
+            'bandwidth_used_gb' => ['nullable', 'numeric', 'min:0', 'lte:bandwidth_limit_gb'],
             'subdomain' => ['required', 'alpha_dash', 'max:63'],
             'domain' => ['nullable', 'string', 'max:255'],
             'database' => ['required', 'regex:/^[A-Za-z0-9_]+$/', Rule::unique('central.tenants', 'database')],
@@ -67,11 +68,12 @@ class TenantProvisionController extends Controller
                 'settings' => [
                     'provisioned_by' => 'central_superadmin',
                     'branding' => [
-                        'portal_title' => 'BukSU Practicum Portal',
+                        'portal_title' => 'University Practicum',
                         'accent' => '#7B1C2E',
                         'secondary' => '#F5A623',
                         'logo_path' => null,
                     ],
+                    'bandwidth' => $this->bandwidthSettings($validated),
                 ],
             ]);
         } catch (Throwable $exception) {
@@ -80,11 +82,11 @@ class TenantProvisionController extends Controller
             return back()
                 ->withInput($request->except('admin_password'))
                 ->withErrors([
-                    'provisioning' => 'College registration failed. Check that MySQL is running and that your central and college database settings in `.env` are correct.',
+                    'provisioning' => 'University registration failed. Check that MySQL is running and that your central and tenant database settings in `.env` are correct.',
                 ]);
         }
 
-        return redirect()->route('central.dashboard')->with('status', "College {$tenant->name} registered successfully.");
+        return redirect()->route('central.dashboard')->with('status', "University portal {$tenant->name} registered successfully.");
     }
 
     public function update(Request $request, Tenant $tenant): RedirectResponse
@@ -102,6 +104,8 @@ class TenantProvisionController extends Controller
             'subscription_starts_at' => ['required', 'date'],
             'subscription_expires_at' => ['nullable', 'date', 'after_or_equal:subscription_starts_at'],
             'is_active' => ['required', Rule::in(['0', '1'])],
+            'bandwidth_limit_gb' => ['required', 'numeric', 'min:1', 'max:100000'],
+            'bandwidth_used_gb' => ['nullable', 'numeric', 'min:0', 'lte:bandwidth_limit_gb'],
             'domain_hosts' => ['nullable', 'string', 'max:2000'],
             'admin_name' => ['nullable', 'string', 'max:255'],
             'admin_email' => ['required', 'email', 'max:255'],
@@ -110,13 +114,17 @@ class TenantProvisionController extends Controller
         $domainHosts = $this->normalizedDomainHosts($validated['domain_hosts'] ?? '');
         $this->ensureDomainHostsAreAvailable($domainHosts, $tenant);
 
-        $tenant->update([
+        $settings = is_array($tenant->settings) ? $tenant->settings : [];
+        $settings['bandwidth'] = $this->bandwidthSettings($validated);
+
+        $tenant->forceFill([
             'name' => $validated['name'],
             'plan' => $validated['plan'],
             'subscription_starts_at' => $validated['subscription_starts_at'],
             'subscription_expires_at' => $validated['subscription_expires_at'] ?? null,
             'is_active' => (bool) $validated['is_active'],
-        ]);
+            'settings' => $settings,
+        ])->save();
         $this->syncDomainHosts($tenant, $domainHosts);
         $this->syncTenantAdminContact($tenant, $validated['admin_email'], $validated['admin_name'] ?? null);
 
@@ -146,7 +154,7 @@ class TenantProvisionController extends Controller
 
         return redirect()
             ->route('central.dashboard', ['section' => 'directory'])
-            ->with('status', "College {$tenant->name} updated successfully.");
+            ->with('status', "University portal {$tenant->name} updated successfully.");
     }
 
     public function updateStatus(Request $request, Tenant $tenant): RedirectResponse
@@ -211,13 +219,13 @@ class TenantProvisionController extends Controller
             return redirect()
                 ->route('central.dashboard', ['section' => 'directory'])
                 ->withErrors([
-                    'provisioning' => "College removal failed for {$tenantName}. Check that MySQL is running and that the database user can drop college databases.",
+                    'provisioning' => "University portal removal failed for {$tenantName}. Check that MySQL is running and that the database user can drop tenant databases.",
                 ]);
         }
 
         return redirect()
             ->route('central.dashboard', ['section' => 'directory'])
-            ->with('status', "College {$tenantName} and database {$databaseName} deleted successfully.");
+            ->with('status', "University portal {$tenantName} and database {$databaseName} deleted successfully.");
     }
 
     protected function dropTenantDatabase(string $database): void
@@ -303,12 +311,10 @@ class TenantProvisionController extends Controller
             ]);
         }
 
-        $emailTaken = TenantAdmin::query()
+        $emailTaken = TenantUser::query()
             ->where('email', $email)
             ->whereKeyNot($admin->getKey())
-            ->exists()
-            || Supervisor::query()->where('email', $email)->exists()
-            || Student::query()->where('email', $email)->exists();
+            ->exists();
 
         if ($emailTaken) {
             throw ValidationException::withMessages([
@@ -350,6 +356,15 @@ class TenantProvisionController extends Controller
         }
 
         return true;
+    }
+
+    protected function bandwidthSettings(array $validated): array
+    {
+        return [
+            'limit_gb' => (float) $validated['bandwidth_limit_gb'],
+            'used_gb' => (float) ($validated['bandwidth_used_gb'] ?? 0),
+            'updated_at' => now()->toDateTimeString(),
+        ];
     }
 
     protected function authorizeTenantManagement(): void

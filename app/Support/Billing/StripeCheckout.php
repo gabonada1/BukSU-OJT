@@ -76,7 +76,7 @@ class StripeCheckout
         $payload['line_items[0][price_data][currency]'] = strtolower((string) ($plan['currency'] ?? 'php'));
         $payload['line_items[0][price_data][unit_amount]'] = $amount;
         $payload['line_items[0][price_data][recurring][interval]'] = 'month';
-        $payload['line_items[0][price_data][product_data][name]'] = 'BukSU Practicum '.$plan['label'].' Plan';
+        $payload['line_items[0][price_data][product_data][name]'] = 'University Practicum '.$plan['label'].' Plan';
 
         return $payload;
     }

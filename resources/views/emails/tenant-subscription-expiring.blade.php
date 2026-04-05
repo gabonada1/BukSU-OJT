@@ -1,11 +1,11 @@
 <x-email-shell
     eyebrow="College License Reminder"
-    title="Your college portal access is nearing expiry"
+    title="Your university portal access is nearing expiry"
     subtitle="{{ $tenant->name }} is approaching its license deadline. Please review the remaining time and coordinate renewal."
 >
     <p>Hello {{ $recipientName }},</p>
 
-    <p>This is a reminder that your college portal access is nearing its renewal deadline.</p>
+    <p>This is a reminder that your university portal access is nearing its renewal deadline.</p>
 
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:20px 0;border-collapse:separate;border-spacing:0 10px;">
         <tr>
@@ -26,5 +26,5 @@
         </tr>
     </table>
 
-    <p>Please coordinate with the BukSU University Admin before the deadline to keep the college portal accessible.</p>
+    <p>Please coordinate with Bukidnon State University Administration before the deadline to keep the university portal accessible.</p>
 </x-email-shell>

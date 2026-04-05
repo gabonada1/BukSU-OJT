@@ -156,7 +156,7 @@
                 <div class="section-header">
                     <div>
                         <h2>Portal Branding</h2>
-                        <p class="section-hint">Keep the live look of your college portal here, then open the modal to change title, colors, and logo.</p>
+                        <p class="section-hint">Keep the live look of your university portal here, then open the modal to change title, colors, and logo.</p>
                     </div>
                     <div class="action-row-actions">
                         <span class="pill">Customizable</span>

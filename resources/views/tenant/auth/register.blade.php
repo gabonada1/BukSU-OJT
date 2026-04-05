@@ -4,7 +4,7 @@
     $tenantBranding = is_array($tenant->settings['branding'] ?? null) ? $tenant->settings['branding'] : [];
     $tenantPortalTitle = filled($tenantBranding['portal_title'] ?? null)
         ? $tenantBranding['portal_title']
-        : config('app.name', 'BukSU Practicum Portal');
+        : config('app.name', 'University Practicum');
     $systemLogo = filled($tenantBranding['logo_path'] ?? null)
         ? asset($tenantBranding['logo_path'])
         : asset('images/logos/logo.jpg');
@@ -18,23 +18,14 @@
 @extends('layouts.tenant')
 
 @section('content')
-    <section class="login-stage">
-        <article class="login-panel">
-            <div class="login-panel-brand">
-                <img src="{{ $systemLogo }}" alt="{{ $tenantPortalTitle }} Logo" class="login-panel-logo">
-                <div class="eyebrow">College Registration</div>
-            </div>
-
-            <div class="login-panel-copy">
+    <section class="lovable-auth-shell lovable-auth-wide">
+        <article class="lovable-auth-card lovable-auth-card-wide">
+            <div class="lovable-auth-brand">
+                <div class="console-brand-mark">
+                    <img src="{{ $systemLogo }}" alt="{{ $tenantPortalTitle }} Logo" class="brand-logo-image">
+                </div>
                 <h1>Register for {{ $tenant->name }}</h1>
-                <p class="login-panel-subtitle">{{ $tenantPortalTitle }}</p>
-                <p class="lead">
-                    Register under {{ $tenant->name }} and choose whether you are joining as a student or company supervisor.
-                    Once you verify your email, your account will appear in college portal user management and you can sign
-                    in to the correct workspace.
-                </p>
-                <div class="login-divider"></div>
-                <p class="login-university-tagline">Bukidnon State University</p>
+                <p>{{ $tenantPortalTitle }}</p>
             </div>
 
             @if ($errors->any())
@@ -60,7 +51,7 @@
             </div>
 
             @if ($selectedRole === 'student')
-                <form method="POST" action="{{ $registerAction }}" class="login-form">
+                <form method="POST" action="{{ $registerAction }}" class="login-form lovable-auth-form">
                     @csrf
                     <input type="hidden" name="role" value="student">
                     <label>Student Number <input type="text" name="student_number" value="{{ old('student_number') }}" required></label>
@@ -94,7 +85,7 @@
                     <a href="{{ $loginUrl }}" class="button secondary">Back to Login</a>
                 </form>
             @elseif ($selectedRole === 'teacher')
-                <form method="POST" action="{{ $registerAction }}" class="login-form">
+                <form method="POST" action="{{ $registerAction }}" class="login-form lovable-auth-form">
                     @csrf
                     <input type="hidden" name="role" value="teacher">
                     <label>Full Name <input type="text" name="name" value="{{ old('name') }}" required></label>
@@ -120,25 +111,11 @@
                     <a href="{{ $loginUrl }}" class="button secondary">Back to Login</a>
                 </form>
             @else
-                <div class="login-support" style="margin-top:0;">
+                <div class="lovable-auth-note" style="margin-top:0;">
                     <strong>Choose a role to continue.</strong>
                     <p>Select Student or Company Supervisor above to open the right registration form for your practicum access.</p>
                 </div>
             @endif
-        </article>
-
-        <article class="login-art">
-            <div class="logo-showcase">
-                <div class="logo-showcase-frame">
-                    <img src="{{ $systemLogo }}" alt="{{ $tenantPortalTitle }} Logo" class="logo-showcase-image">
-                </div>
-                <div class="logo-showcase-copy">
-                    <div class="eyebrow">{{ $tenantPortalTitle }}</div>
-                    <h3>{{ $tenant->name }}</h3>
-                    <p>Students can apply for slots and upload requirements, while company supervisors can review reports, log hours, and submit evaluations.</p>
-                    <span class="preview-chip">{{ $tenantAccessLabel }}</span>
-                </div>
-            </div>
         </article>
     </section>
 @endsection

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\AuthorizesTenantPermissions;
 use App\Http\Controllers\Concerns\InteractsWithTenantRouting;
 use App\Models\Student;
 use App\Models\StudentRequirement;
@@ -14,7 +15,7 @@ use Illuminate\Validation\Rule;
 
 class StudentRequirementController extends Controller
 {
-    use InteractsWithTenantRouting;
+    use AuthorizesTenantPermissions, InteractsWithTenantRouting;
 
     public function store(
         Request $request,
@@ -25,9 +26,10 @@ class StudentRequirementController extends Controller
         $tenant = $currentTenant->tenant();
 
         abort_unless($tenant, 404);
+        $this->authorizeTenantPermission('requirement.review', $tenant);
 
         $data = $request->validate([
-            'student_id' => ['required', 'integer', 'exists:tenant.students,id'],
+            'student_id' => ['required', 'integer', Rule::exists('tenant.tenant_users', 'id')->where('role', 'student')],
             'requirement_name' => ['required', 'string', 'max:255'],
             'status' => ['required', Rule::in(['submitted', 'approved', 'revision', 'rejected'])],
             'notes' => ['nullable', 'string', 'max:1000'],
@@ -62,9 +64,10 @@ class StudentRequirementController extends Controller
         $tenant = $currentTenant->tenant();
 
         abort_unless($tenant, 404);
+        $this->authorizeTenantPermission('requirement.review', $tenant);
 
         $data = $request->validate([
-            'student_id' => ['required', 'integer', 'exists:tenant.students,id'],
+            'student_id' => ['required', 'integer', Rule::exists('tenant.tenant_users', 'id')->where('role', 'student')],
             'requirement_name' => ['required', 'string', 'max:255'],
             'status' => ['required', Rule::in(['submitted', 'approved', 'revision', 'rejected'])],
             'notes' => ['nullable', 'string', 'max:1000'],
@@ -101,6 +104,7 @@ class StudentRequirementController extends Controller
         $student = Auth::guard('student')->user();
 
         abort_unless($tenant && $student, 404);
+        $this->authorizeTenantPermission('application.manage', $tenant);
 
         $data = $request->validate([
             'requirement_name' => ['required', 'string', 'max:255'],
@@ -119,7 +123,7 @@ class StudentRequirementController extends Controller
             'reviewed_at' => null,
         ]);
 
-        return redirect()->to($this->tenantRoute($tenant, 'student.dashboard').'#requirements')
+        return redirect()->to($this->tenantRoute($tenant, 'student.dashboard').'?section=requirements')
             ->with('status', 'Document uploaded. Your internship coordinator can now review it.');
     }
 }

@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\AuthorizesTenantPermissions;
 use App\Http\Controllers\Concerns\InteractsWithTenantRouting;
 use App\Models\Supervisor;
+use App\Models\TenantUser;
 use App\Support\Tenancy\CurrentTenant;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -11,17 +13,18 @@ use Illuminate\Validation\ValidationException;
 
 class SupervisorController extends Controller
 {
-    use InteractsWithTenantRouting;
+    use AuthorizesTenantPermissions, InteractsWithTenantRouting;
 
     public function store(Request $request, CurrentTenant $currentTenant): RedirectResponse
     {
         $tenant = $currentTenant->tenant();
 
         abort_unless($tenant, 404);
+        $this->authorizeTenantPermission('user.create', $tenant);
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:tenant.supervisors,email'],
+            'email' => ['required', 'email', 'max:255', 'unique:tenant.tenant_users,email'],
             'position' => ['nullable', 'string', 'max:255'],
             'department' => ['nullable', 'string', 'max:255'],
             'partner_company_id' => ['nullable', 'integer', 'exists:tenant.partner_companies,id'],
@@ -50,10 +53,11 @@ class SupervisorController extends Controller
         $tenant = $currentTenant->tenant();
 
         abort_unless($tenant, 404);
+        $this->authorizeTenantPermission('user.update', $tenant);
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:tenant.supervisors,email,'.$supervisor->getKey()],
+            'email' => ['required', 'email', 'max:255', 'unique:tenant.tenant_users,email,'.$supervisor->getKey()],
             'position' => ['nullable', 'string', 'max:255'],
             'department' => ['nullable', 'string', 'max:255'],
             'partner_company_id' => ['nullable', 'integer', 'exists:tenant.partner_companies,id'],
@@ -87,16 +91,14 @@ class SupervisorController extends Controller
 
     protected function ensureEmailIsAvailable(string $email, ?int $ignoreSupervisorId = null): void
     {
-        $emailTaken = \App\Models\TenantAdmin::query()->where('email', $email)->exists()
-            || \App\Models\Student::query()->where('email', $email)->exists()
-            || Supervisor::query()
-                ->when($ignoreSupervisorId, fn ($query) => $query->whereKeyNot($ignoreSupervisorId))
-                ->where('email', $email)
-                ->exists();
+        $emailTaken = TenantUser::query()
+            ->when($ignoreSupervisorId, fn ($query) => $query->whereKeyNot($ignoreSupervisorId))
+            ->where('email', $email)
+            ->exists();
 
         if ($emailTaken) {
             throw ValidationException::withMessages([
-                'email' => 'This email is already being used by another college portal account.',
+                'email' => 'This email is already being used by another university portal account.',
             ]);
         }
     }

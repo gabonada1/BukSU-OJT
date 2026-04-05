@@ -1,11 +1,11 @@
 <x-email-shell
-    eyebrow="College Portal Suspended"
+    eyebrow="University Portal Suspended"
     title="College portal access has been suspended"
-    subtitle="{{ $tenant->name }} can no longer access the college portal until the license is restored."
+    subtitle="{{ $tenant->name }} can no longer access the university portal until the license is restored."
 >
     <p>Hello {{ $recipientName }},</p>
 
-    <p>Your college portal access is currently suspended.</p>
+    <p>Your university portal access is currently suspended.</p>
 
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:20px 0;border-collapse:separate;border-spacing:0 10px;">
         <tr>
@@ -26,5 +26,5 @@
         </tr>
     </table>
 
-    <p>Please contact the BukSU University Admin to reactivate the college portal.</p>
+    <p>Please contact Bukidnon State University Administration to reactivate the university portal.</p>
 </x-email-shell>

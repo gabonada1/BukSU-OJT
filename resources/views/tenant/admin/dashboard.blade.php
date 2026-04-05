@@ -11,13 +11,6 @@
             'table' => 'tenant.partials.tables.partner-companies-table',
             'form' => 'tenant.partials.forms.partner-company-form',
         ],
-        'applications' => [
-            'title' => 'Student Applications',
-            'create_title' => 'Student Application',
-            'empty' => 'No student applications yet.',
-            'table' => 'tenant.partials.tables.applications-table',
-            'form' => 'tenant.partials.forms.application-form',
-        ],
         'supervisors' => [
             'title' => 'Company Supervisors',
             'create_title' => 'Company Supervisor',
@@ -34,7 +27,7 @@
         ],
         'users' => [
             'title' => 'RBAC & User Management',
-            'empty' => 'No college portal users yet.',
+            'empty' => 'No university portal users yet.',
             'table' => 'tenant.partials.tables.users-table',
             'form' => 'tenant.partials.forms.user-management-form',
         ],
@@ -60,7 +53,6 @@
 
     $section = $sections[$currentSection];
     $editingCompany = $editing['companies'] ?? null;
-    $editingApplication = $editing['applications'] ?? null;
     $editingSupervisor = $editing['supervisors'] ?? null;
     $editingStudent = $editing['students'] ?? null;
     $editingRequirement = $editing['requirements'] ?? null;
@@ -69,7 +61,6 @@
     $showCreatePanel = ($createSection === $currentSection || $errors->any()) && $currentSection !== 'users';
     $showEditPanel = filled(match ($currentSection) {
         'companies' => $editingCompany,
-        'applications' => $editingApplication,
         'supervisors' => $editingSupervisor,
         'students' => $editingStudent,
         'requirements' => $editingRequirement,
@@ -79,40 +70,73 @@
     });
     $dashboardBaseUrl = route('tenant.admin.dashboard');
     $baseSectionUrl = $dashboardBaseUrl.'?section='.$currentSection;
+    $sectionCreateTitle = $section['create_title'] ?? \Illuminate\Support\Str::singular($section['title']);
 @endphp
 
 @extends('layouts.tenant')
 
 @section('content')
-    <section class="page-head">
-        <div>
+    <section class="admin-hero">
+        <div class="admin-hero-copy">
+            <span class="admin-eyebrow">Tenant Workspace</span>
             <h1>{{ $tenant->name }}</h1>
-            <p>Internship Coordinator Dashboard - {{ $sections[$currentSection]['title'] }}</p>
+            <p>Internship Coordinator Dashboard for {{ $sections[$currentSection]['title'] }}.</p>
+            <div class="admin-action-row">
+                @if ($currentSection === 'users')
+                    <a class="button" href="{{ $dashboardBaseUrl.'?section=students&create=students' }}">Create Student</a>
+                    <a class="button secondary" href="{{ $dashboardBaseUrl.'?section=supervisors&create=supervisors' }}">Create Supervisor</a>
+                @else
+                    <a class="button" href="{{ $dashboardBaseUrl.'?section='.$currentSection.'&create='.$currentSection }}">Add Record</a>
+                    <a class="button secondary" href="{{ route('tenant.admin.profile.show') }}">Open Profile</a>
+                @endif
+            </div>
         </div>
 
-        <div class="page-mini-stats">
-            <div class="page-mini-card">
-                <strong>Organizations</strong>
-                <span>{{ $stats['companies'] }}</span>
-            </div>
-            <div class="page-mini-card">
-                <strong>Applications</strong>
-                <span>{{ $stats['applications'] }}</span>
-            </div>
-            <div class="page-mini-card">
-                <strong>Students</strong>
-                <span>{{ $stats['students'] }}</span>
-            </div>
-            <div class="page-mini-card">
-                <strong>Users</strong>
-                <span>{{ $stats['users'] }}</span>
-            </div>
+        <div class="admin-hero-metrics">
+            <article class="admin-hero-panel">
+                <span>Organizations</span>
+                <strong>{{ $stats['companies'] }}</strong>
+                <small>Partner companies in this tenant portal</small>
+            </article>
+            <article class="admin-hero-panel">
+                <span>Students</span>
+                <strong>{{ $stats['students'] }}</strong>
+                <small>Intern records currently tracked</small>
+            </article>
+            <article class="admin-hero-panel">
+                <span>Users</span>
+                <strong>{{ $stats['users'] }}</strong>
+                <small>Coordinators, supervisors, and students with access</small>
+            </article>
         </div>
+    </section>
+
+    <section class="admin-kpi-grid">
+        <article class="admin-stat-card">
+            <span>Applications</span>
+            <strong>{{ $stats['applications'] }}</strong>
+            <small>Internship submissions across this tenant</small>
+        </article>
+        <article class="admin-stat-card">
+            <span>Supervisors</span>
+            <strong>{{ $stats['supervisors'] }}</strong>
+            <small>Partner-company supervisors available</small>
+        </article>
+        <article class="admin-stat-card">
+            <span>Approved Requirements</span>
+            <strong>{{ $stats['approved_requirements'] }}</strong>
+            <small>Documents cleared by coordinators</small>
+        </article>
+        <article class="admin-stat-card">
+            <span>Approved Hours</span>
+            <strong>{{ number_format($stats['approved_hours'], 0) }}</strong>
+            <small>Validated practicum hours recorded</small>
+        </article>
     </section>
 
     @if ($errors->any())
         <div class="error-panel">
-            <strong>Some college portal updates did not complete.</strong>
+            <strong>Some university portal updates did not complete.</strong>
             <ul style="margin:8px 0 0;padding-left:18px;">
                 @foreach ($errors->all() as $error)
                     <li>{{ $error }}</li>
@@ -133,7 +157,7 @@
                     <span class="pill">Tenant Scope</span>
                 </div>
                 <ul class="soft-list" style="margin-top:16px;">
-                    <li>Internship coordinators control tenant users only inside this college portal.</li>
+                    <li>Internship coordinators control tenant users only inside this university portal.</li>
                     <li>You can activate, suspend, and reassign users between student, supervisor, and coordinator roles.</li>
                     <li>Central superadmin still controls tenant creation, subscription, activation, and approved domains.</li>
                 </ul>
@@ -169,7 +193,7 @@
             @if ($showCreatePanel)
                 <div class="form-panel">
                     <div class="form-panel-header">
-                        <h3>New {{ $section['create_title'] }}</h3>
+                        <h3>New {{ $sectionCreateTitle }}</h3>
                         <a class="panel-close" href="{{ $baseSectionUrl }}">&times;</a>
                     </div>
 
@@ -180,7 +204,7 @@
             @if ($showEditPanel)
                 <div class="form-panel">
                     <div class="form-panel-header">
-                        <h3>Edit {{ $section['title'] === 'User Management' ? 'User' : $section['create_title'] }}</h3>
+                        <h3>Edit {{ $section['title'] === 'User Management' ? 'User' : $sectionCreateTitle }}</h3>
                         <a class="panel-close" href="{{ $baseSectionUrl }}">&times;</a>
                     </div>
 
@@ -189,6 +213,22 @@
             @endif
 
             @include($section['table'], ['embedded' => true, 'showHeading' => false])
+
+            @if ($currentSection === 'students' && $selectedStudentForApplications)
+                <div class="form-panel">
+                    <div class="form-panel-header">
+                        <h3>Applications for {{ $selectedStudentForApplications->full_name }}</h3>
+                        <a class="panel-close" href="{{ $baseSectionUrl }}">&times;</a>
+                    </div>
+
+                    @include('tenant.partials.tables.applications-table', [
+                        'embedded' => true,
+                        'showHeading' => false,
+                        'applications' => $selectedStudentApplications,
+                        'applicationSection' => 'students',
+                    ])
+                </div>
+            @endif
         </article>
     </section>
 @endsection

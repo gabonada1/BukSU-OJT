@@ -49,7 +49,7 @@ class TenantProvisioner
                 'settings' => $data['settings'] ?? [
                     'provisioned_by' => 'central_superadmin',
                     'branding' => [
-                        'portal_title' => 'BukSU Practicum Portal',
+                        'portal_title' => 'University Practicum',
                         'accent' => '#7B1C2E',
                         'secondary' => '#F5A623',
                         'logo_path' => null,
@@ -73,6 +73,7 @@ class TenantProvisioner
                 'name' => $adminName,
                 'email' => $data['admin_email'],
                 'password' => $adminPassword,
+                'must_change_password' => true,
                 'is_active' => true,
             ]);
 

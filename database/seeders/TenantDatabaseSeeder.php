@@ -14,7 +14,7 @@ class TenantDatabaseSeeder extends Seeder
     public function run(): void
     {
         $company = PartnerCompany::query()->firstOrCreate(
-            ['name' => 'BukSU Technology Solutions'],
+            ['name' => 'Bukidnon State University Technology Solutions'],
             [
                 'industry' => 'Information Technology',
                 'address' => 'Malaybalay City, Bukidnon',
@@ -29,7 +29,7 @@ class TenantDatabaseSeeder extends Seeder
         TenantAdmin::query()->firstOrCreate(
             ['email' => 'admin@technology.localhost'],
             [
-                'name' => 'Technology Internship Coordinator',
+                'name' => 'Bukidnon State University Internship Coordinator',
                 'password' => 'password123',
             ]
         );

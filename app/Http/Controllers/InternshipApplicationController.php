@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\AuthorizesTenantPermissions;
 use App\Http\Controllers\Concerns\InteractsWithTenantRouting;
 use App\Models\InternshipApplication;
 use App\Models\PartnerCompany;
 use App\Models\Student;
+use App\Models\StudentRequirement;
 use App\Support\Tenancy\CurrentTenant;
 use App\Support\Tenancy\TenantUploadManager;
 use Illuminate\Http\RedirectResponse;
@@ -16,7 +18,7 @@ use Illuminate\Validation\ValidationException;
 
 class InternshipApplicationController extends Controller
 {
-    use InteractsWithTenantRouting;
+    use AuthorizesTenantPermissions, InteractsWithTenantRouting;
 
     public function storeAdmin(
         Request $request,
@@ -26,6 +28,7 @@ class InternshipApplicationController extends Controller
         $tenant = $currentTenant->tenant();
 
         abort_unless($tenant, 404);
+        $this->authorizeTenantPermission('application.manage', $tenant);
 
         $data = $this->validateApplication($request, requireStudent: true);
         $student = Student::query()->findOrFail($data['student_id']);
@@ -48,7 +51,7 @@ class InternshipApplicationController extends Controller
             $request,
             $tenant,
             'admin.dashboard',
-            ['section' => 'applications'],
+            ['section' => 'students', 'student_applications' => $student->getKey()],
             'Internship application recorded.'
         );
     }
@@ -62,6 +65,7 @@ class InternshipApplicationController extends Controller
         $tenant = $currentTenant->tenant();
 
         abort_unless($tenant, 404);
+        $this->authorizeTenantPermission('application.manage', $tenant);
 
         $data = $this->validateApplication($request, requireStudent: true, ignoreApplication: $application);
         $student = Student::query()->findOrFail($data['student_id']);
@@ -88,7 +92,7 @@ class InternshipApplicationController extends Controller
             $request,
             $tenant,
             'admin.dashboard',
-            ['section' => 'applications'],
+            ['section' => 'students', 'student_applications' => $student->getKey()],
             'Internship application updated.'
         );
     }
@@ -102,6 +106,7 @@ class InternshipApplicationController extends Controller
         $student = Auth::guard('student')->user();
 
         abort_unless($tenant && $student, 404);
+        $this->authorizeTenantPermission('application.manage', $tenant);
 
         if (InternshipApplication::query()
             ->where('student_id', $student->getKey())
@@ -122,7 +127,7 @@ class InternshipApplicationController extends Controller
             'clearance' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png,doc,docx', 'max:10240'],
         ]);
 
-        InternshipApplication::query()->create([
+        $application = InternshipApplication::query()->create([
             'student_id' => $student->getKey(),
             'partner_company_id' => $data['partner_company_id'],
             'position_applied' => $data['position_applied'],
@@ -141,8 +146,42 @@ class InternshipApplicationController extends Controller
             'applied_at' => now(),
         ]);
 
-        return redirect()->to($this->tenantRoute($tenant, 'student.dashboard').'#applications')
+        $this->syncApplicationRequirements($student, [
+            'Resume' => $application->resume_path,
+            'Endorsement Letter' => $application->endorsement_letter_path,
+            'MOA' => $application->moa_path,
+            'Clearance' => $application->clearance_path,
+        ]);
+
+        return redirect()->to($this->tenantRoute($tenant, 'student.dashboard').'?section=applications')
             ->with('status', 'Internship application submitted. You can now track it from your dashboard.');
+    }
+
+    /**
+     * @param array<string, string|null> $documents
+     */
+    protected function syncApplicationRequirements(Student $student, array $documents): void
+    {
+        foreach ($documents as $requirementName => $filePath) {
+            if (! filled($filePath)) {
+                continue;
+            }
+
+            StudentRequirement::query()->updateOrCreate(
+                [
+                    'student_id' => $student->getKey(),
+                    'requirement_name' => $requirementName,
+                ],
+                [
+                    'status' => 'submitted',
+                    'file_path' => $filePath,
+                    'notes' => 'Submitted with internship application.',
+                    'feedback' => null,
+                    'submitted_at' => now(),
+                    'reviewed_at' => null,
+                ]
+            );
+        }
     }
 
     protected function validateApplication(
@@ -154,7 +193,7 @@ class InternshipApplicationController extends Controller
             'student_id' => array_filter([
                 $requireStudent ? 'required' : null,
                 'integer',
-                'exists:tenant.students,id',
+                Rule::exists('tenant.tenant_users', 'id')->where('role', 'student'),
             ]),
             'partner_company_id' => ['required', 'integer', 'exists:tenant.partner_companies,id'],
             'position_applied' => ['required', 'string', 'max:255'],

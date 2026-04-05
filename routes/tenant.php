@@ -6,6 +6,7 @@ use App\Http\Controllers\PartnerCompanyController;
 use App\Http\Controllers\StudentDashboardController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\CourseController;
+use App\Http\Controllers\TenantAdminPasswordSetupController;
 use App\Http\Controllers\TenantProfileController;
 use App\Http\Controllers\TenantRegistrationController;
 use App\Http\Controllers\TenantRbacController;
@@ -39,6 +40,11 @@ $registerTenantRoutes = function (string $namePrefix) use ($loginRoles): void {
         Route::post('/admin/logout', [TenantAuthController::class, 'destroy'])
             ->defaults('role', 'admin')
             ->name("{$namePrefix}admin.logout");
+        Route::get('/admin/create-password', [TenantAdminPasswordSetupController::class, 'create'])->name("{$namePrefix}admin.password.setup.show");
+        Route::post('/admin/create-password', [TenantAdminPasswordSetupController::class, 'store'])->name("{$namePrefix}admin.password.setup.store");
+    });
+
+    Route::middleware(['auth:tenant_admin', 'tenant.account', 'tenant.password.updated'])->group(function () use ($namePrefix) {
         Route::get('/admin/profile', [TenantProfileController::class, 'show'])->defaults('role', 'admin')->name("{$namePrefix}admin.profile.show");
         Route::patch('/admin/profile', [TenantProfileController::class, 'update'])->defaults('role', 'admin')->name("{$namePrefix}admin.profile.update");
         Route::put('/admin/profile/password', [TenantProfileController::class, 'updatePassword'])->defaults('role', 'admin')->name("{$namePrefix}admin.profile.password.update");

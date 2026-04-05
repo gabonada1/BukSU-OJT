@@ -35,7 +35,7 @@ class TenantAuthController extends Controller
 
         if (! $role) {
             throw ValidationException::withMessages([
-                'email' => 'No account was found for this email in the selected college portal.',
+                'email' => 'No account was found for this email in the selected university portal.',
             ]);
         }
 
@@ -128,7 +128,7 @@ class TenantAuthController extends Controller
         return match ($role) {
             'student' => 'This student account is suspended or still waiting for email verification.',
             'supervisor' => 'This company supervisor account is suspended or still waiting for email verification.',
-            default => 'This internship coordinator account is suspended. Please contact the BukSU University Admin.',
+            default => 'This internship coordinator account is suspended. Please contact Bukidnon State University Administration.',
         };
     }
 
@@ -138,7 +138,7 @@ class TenantAuthController extends Controller
 
         abort_unless($tenant, 404);
 
-        $portalTitle = data_get($tenant->settings, 'branding.portal_title', config('app.name', 'BukSU Practicum Portal'));
+        $portalTitle = data_get($tenant->settings, 'branding.portal_title', config('app.name', 'University Practicum'));
 
         if ($role && Auth::guard($this->guardForRole($role))->check()) {
             return redirect()->to($this->dashboardPath($role));
@@ -146,7 +146,7 @@ class TenantAuthController extends Controller
 
         return view('tenant.auth.login', [
             'tenant' => $tenant,
-            'pageTitle' => 'College Portal | '.$portalTitle,
+            'pageTitle' => 'University Portal | '.$portalTitle,
             'selectedLoginRole' => $role,
             'loginAction' => $this->loginAction($tenant, $role),
             'registerUrl' => route('tenant.register.create'),
@@ -184,6 +184,10 @@ class TenantAuthController extends Controller
 
         $request->session()->regenerate();
         $request->session()->put("tenant_context.{$guard}", (string) $tenant->getRouteKey());
+
+        if ($role === 'admin' && $authenticatedUser->must_change_password) {
+            return redirect()->route('tenant.admin.password.setup.show');
+        }
 
         return redirect()->to($this->dashboardPath($role));
     }

@@ -15,13 +15,13 @@ class CentralLandingController extends Controller
         $tenants = Tenant::query()->get();
 
         return view('central.landing', [
-            'pageTitle' => config('app.name', 'BukSU Practicum Portal'),
+            'pageTitle' => config('app.name', 'University Practicum'),
             'plans' => PlanCatalog::all(),
             'benefits' => [
-                'Separate per-college tenant database for cleaner practicum records and access control.',
+                'Separate per-university tenant database for cleaner practicum records and access control.',
                 'Role-based portals for internship coordinators, students, and company supervisors.',
                 'Built-in workflows for partner companies, applications, requirements, progress reports, evaluations, and OJT hours.',
-                'Central approval and provisioning so the BukSU admin controls new tenant creation.',
+                'Central approval and provisioning so Bukidnon State University controls new tenant creation.',
             ],
             'stats' => [
                 'active_tenants' => $tenants->filter(fn (Tenant $tenant) => $tenant->canAccessTenantApp())->count(),

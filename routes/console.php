@@ -186,7 +186,7 @@ Artisan::command('local:deploy-live {--target=} {--tenant=*} {--skip-migrate} {-
 
     $this->newLine();
     $this->components->info('Live codebase updated successfully.');
-    $this->line('Open: http://lvh.me:8000/ or your tenant lvh.me login URL.');
+    $this->line('Open: http://localhost:8000/ or your tenant localhost login URL.');
 
     return self::SUCCESS;
 })->purpose('Sync this codebase into the Apache-served local BukSU Practicum folder');

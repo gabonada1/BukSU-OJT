@@ -16,7 +16,7 @@ class CentralAuthController extends Controller
     public function create(): View
     {
         return view('central.auth.login', [
-            'pageTitle' => 'University Administration Login | '.config('app.name', 'BukSU Practicum Portal'),
+            'pageTitle' => 'University Administration Login | '.config('app.name', 'University Practicum'),
             'loginAction' => route('central.login.store'),
         ]);
     }

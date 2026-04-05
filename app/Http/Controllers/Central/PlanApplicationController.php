@@ -58,15 +58,18 @@ class PlanApplicationController extends Controller
                 'stripe_customer_email' => $validated['contact_email'],
             ]);
 
-            collect([$application->contact_email, $application->admin_email])
-                ->filter()
-                ->unique()
-                ->each(function (string $email) use ($application): void {
-                    rescue(fn () => Mail::to($email)->send(new TenantPlanApplicationPendingApprovalMail($application)), report: true);
-                });
+            $mailFailures = $this->sendPendingApprovalNotifications($application);
 
-            return redirect()->route('app.entry')
-                ->with('status', 'Local development checkout bypassed. The plan application is marked paid and is now waiting for BukSU admin approval.');
+            $response = redirect()->route('app.entry')
+                ->with('status', 'Local development checkout bypassed. The plan application is marked paid and is now waiting for Bukidnon State University approval.');
+
+            if ($mailFailures !== []) {
+                $response->withErrors([
+                    'mail' => 'Payment was recorded, but the confirmation email could not be sent. Check your MAIL settings and the application log.',
+                ]);
+            }
+
+            return $response;
         }
 
         if (! $this->stripeCheckout->isConfigured()) {
@@ -156,15 +159,18 @@ class PlanApplicationController extends Controller
             'stripe_customer_email' => $session['customer_details']['email'] ?? $application->contact_email,
         ]);
 
-        collect([$application->contact_email, $application->admin_email])
-            ->filter()
-            ->unique()
-            ->each(function (string $email) use ($application): void {
-                rescue(fn () => Mail::to($email)->send(new TenantPlanApplicationPendingApprovalMail($application)), report: true);
-            });
+        $mailFailures = $this->sendPendingApprovalNotifications($application);
 
-        return redirect()->route('app.entry')
-            ->with('status', 'Payment received. Your plan application is now waiting for BukSU admin approval. The tenant portal and coordinator credentials will only be created after approval.');
+        $response = redirect()->route('app.entry')
+            ->with('status', 'Payment received. Your plan application is now waiting for Bukidnon State University approval. The tenant portal and coordinator credentials will only be created after approval.');
+
+        if ($mailFailures !== []) {
+            $response->withErrors([
+                'mail' => 'Payment was successful, but the confirmation email could not be sent. Check your MAIL settings and the application log.',
+            ]);
+        }
+
+        return $response;
     }
 
     public function cancel(TenantPlanApplication $application): RedirectResponse
@@ -190,6 +196,8 @@ class PlanApplicationController extends Controller
             'domain' => ['nullable', 'string', 'max:255'],
             'subscription_starts_at' => ['required', 'date'],
             'subscription_expires_at' => ['nullable', 'date', 'after_or_equal:subscription_starts_at'],
+            'bandwidth_limit_gb' => ['required', 'numeric', 'min:1', 'max:100000'],
+            'bandwidth_used_gb' => ['nullable', 'numeric', 'min:0', 'lte:bandwidth_limit_gb'],
             'admin_password' => ['nullable', 'string', 'min:8'],
             'approval_notes' => ['nullable', 'string', 'max:1000'],
         ]);
@@ -210,10 +218,15 @@ class PlanApplicationController extends Controller
                     'provisioned_by' => 'approved_plan_application',
                     'application_id' => $application->getKey(),
                     'branding' => [
-                        'portal_title' => 'BukSU Practicum Portal',
+                        'portal_title' => 'University Practicum',
                         'accent' => '#7B1C2E',
                         'secondary' => '#F5A623',
                         'logo_path' => null,
+                    ],
+                    'bandwidth' => [
+                        'limit_gb' => (float) $validated['bandwidth_limit_gb'],
+                        'used_gb' => (float) ($validated['bandwidth_used_gb'] ?? 0),
+                        'updated_at' => now()->toDateTimeString(),
                     ],
                 ],
             ]);
@@ -279,17 +292,15 @@ class PlanApplicationController extends Controller
 
         // Priority order for primary domain:
         // 1. Custom domain if provided (user's explicit choice)
-        // 2. Localhost subdomain if subdomain provided (for local dev without hosts file)
-        // 3. LVH.ME variants as backup
+        // 2. Localhost subdomain if subdomain provided (for local development)
 
         if (filled($customDomain)) {
             $hosts[] = strtolower(trim((string) $customDomain));
         } elseif (filled($subdomain)) {
-            // Use localhost subdomain as primary for local development
             $hosts[] = strtolower(trim((string) $subdomain)) . '.localhost';
         }
 
-        // Add all local alias hosts (will include localhost and .lvh.me variants)
+        // Add localhost aliases for local development.
         $localAliases = $this->tenantUrlGenerator->localAliasHosts(
             $subdomain,
             $application?->college_name,
@@ -319,5 +330,25 @@ class PlanApplicationController extends Controller
         }
 
         return (bool) config('services.stripe.local_bypass', false);
+    }
+
+    protected function sendPendingApprovalNotifications(TenantPlanApplication $application): array
+    {
+        $failures = [];
+
+        collect([$application->contact_email, $application->admin_email])
+            ->filter()
+            ->unique()
+            ->each(function (string $email) use ($application, &$failures): void {
+                try {
+                    Mail::to($email)->send(new TenantPlanApplicationPendingApprovalMail($application));
+                } catch (Throwable $exception) {
+                    report($exception);
+
+                    $failures[$email] = $exception->getMessage();
+                }
+            });
+
+        return $failures;
     }
 }

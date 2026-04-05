@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\AuthorizesTenantPermissions;
 use App\Http\Controllers\Concerns\InteractsWithTenantRouting;
 use App\Models\Student;
 use App\Models\Supervisor;
@@ -19,7 +20,7 @@ use Illuminate\Validation\ValidationException;
 
 class TenantUserManagementController extends Controller
 {
-    use InteractsWithTenantRouting;
+    use AuthorizesTenantPermissions, InteractsWithTenantRouting;
 
     public function update(Request $request, CurrentTenant $currentTenant, string $type, int $id): RedirectResponse
     {
@@ -39,6 +40,16 @@ class TenantUserManagementController extends Controller
         $targetRole = $data['role'];
         $currentRole = $this->roleFromType($type);
         $currentAdmin = Auth::guard('tenant_admin')->user();
+
+        $this->authorizeTenantPermission('user.update', $tenant);
+
+        if ($currentRole !== $targetRole) {
+            $this->authorizeTenantPermission('user.role.assign', $tenant);
+        }
+
+        if ($user->is_active !== $isActive) {
+            $this->authorizeTenantPermission('user.suspend', $tenant);
+        }
 
         if ($currentRole === 'admin' && $currentAdmin && $currentAdmin->getKey() === $user->getKey()) {
             if (! $isActive || $targetRole !== 'admin') {

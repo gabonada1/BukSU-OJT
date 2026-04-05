@@ -7,6 +7,7 @@ use App\Models\Course;
 use App\Models\Student;
 use App\Models\Supervisor;
 use App\Models\TenantAdmin;
+use App\Models\TenantUser;
 use App\Support\Tenancy\CurrentTenant;
 use App\Support\Tenancy\TenantUploadManager;
 use Illuminate\Contracts\View\View;
@@ -72,17 +73,17 @@ class TenantProfileController extends Controller
             'student' => $request->validate([
                 'first_name' => ['required', 'string', 'max:255'],
                 'last_name' => ['required', 'string', 'max:255'],
-                'email' => ['required', 'email', 'max:255', Rule::unique('tenant.students', 'email')->ignore($user->getKey())],
+                'email' => ['required', 'email', 'max:255', Rule::unique('tenant.tenant_users', 'email')->ignore($user->getKey())],
                 'program' => ['nullable', 'string', 'max:255'],
             ]),
             'supervisor' => $request->validate([
                 'name' => ['required', 'string', 'max:255'],
-                'email' => ['required', 'email', 'max:255', Rule::unique('tenant.supervisors', 'email')->ignore($user->getKey())],
+                'email' => ['required', 'email', 'max:255', Rule::unique('tenant.tenant_users', 'email')->ignore($user->getKey())],
                 'position' => ['nullable', 'string', 'max:255'],
             ]),
             default => $request->validate([
                 'name' => ['required', 'string', 'max:255'],
-                'email' => ['required', 'email', 'max:255', Rule::unique('tenant.tenant_admins', 'email')->ignore($user->getKey())],
+                'email' => ['required', 'email', 'max:255', Rule::unique('tenant.tenant_users', 'email')->ignore($user->getKey())],
             ]),
         };
 
@@ -167,7 +168,7 @@ class TenantProfileController extends Controller
         $branding = is_array($settings['branding'] ?? null) ? $settings['branding'] : [];
         $portalTitle = trim($validated['portal_title']);
 
-        $branding['portal_title'] = $portalTitle !== '' ? $portalTitle : config('app.name', 'BukSU Practicum Portal');
+        $branding['portal_title'] = $portalTitle !== '' ? $portalTitle : config('app.name', 'University Practicum');
         $branding['accent'] = strtoupper($validated['accent_color']);
         $branding['secondary'] = strtoupper($validated['secondary_color']);
         $branding['logo_path'] = $uploadManager->replace(
@@ -236,15 +237,14 @@ class TenantProfileController extends Controller
 
     protected function ensureEmailStaysUniqueAcrossRoles(string $role, string $email, int $ignoreId): void
     {
-        $conflict = match ($role) {
-            'admin' => Supervisor::query()->where('email', $email)->exists() || Student::query()->where('email', $email)->exists(),
-            'supervisor' => TenantAdmin::query()->where('email', $email)->exists() || Student::query()->where('email', $email)->exists(),
-            default => TenantAdmin::query()->where('email', $email)->exists() || Supervisor::query()->where('email', $email)->exists(),
-        };
+        $conflict = TenantUser::query()
+            ->where('email', $email)
+            ->whereKeyNot($ignoreId)
+            ->exists();
 
         if ($conflict) {
             throw ValidationException::withMessages([
-                'email' => 'This email is already assigned to another college portal role.',
+                'email' => 'This email is already assigned to another university portal role.',
             ]);
         }
     }
@@ -270,7 +270,7 @@ class TenantProfileController extends Controller
         return [
             'portal_title' => filled($branding['portal_title'] ?? null)
                 ? $branding['portal_title']
-                : config('app.name', 'BukSU Practicum Portal'),
+                : config('app.name', 'University Practicum'),
             'accent' => preg_match('/^#[0-9A-Fa-f]{6}$/', $accent) ? strtoupper($accent) : '#7B1C2E',
             'secondary' => preg_match('/^#[0-9A-Fa-f]{6}$/', $secondary) ? strtoupper($secondary) : '#F5A623',
             'logo_path' => $branding['logo_path'] ?? null,
