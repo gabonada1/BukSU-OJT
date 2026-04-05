@@ -1,4 +1,4 @@
-@php
+﻿@php
     $embedded = $embedded ?? false;
     $showHeading = $showHeading ?? true;
     $mode = $mode ?? 'create';
@@ -10,7 +10,7 @@
 @endphp
 
 @unless ($embedded)
-<article class="card">
+<article >
 @endunless
     @if ($showHeading)
         <h2>{{ $isEditing ? 'Edit OJT Application' : 'New OJT Application' }}</h2>
@@ -51,8 +51,9 @@
         <label>Endorsement Letter <input type="file" name="endorsement_letter" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"></label>
         <label>MOA <input type="file" name="moa" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"></label>
         <label>Clearance <input type="file" name="clearance" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"></label>
-        <button type="submit" class="small-button">{{ $isEditing ? 'Save Changes' : 'Save OJT Application' }}</button>
+        <button type="submit" >{{ $isEditing ? 'Save Changes' : 'Save OJT Application' }}</button>
     </form>
 @unless ($embedded)
 </article>
 @endunless
+

@@ -161,6 +161,14 @@ class TenantProfileController extends Controller
             'portal_title' => ['required', 'string', 'max:120'],
             'accent_color' => ['required', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'secondary_color' => ['required', 'regex:/^#[0-9A-Fa-f]{6}$/'],
+            'page_color' => ['required', 'regex:/^#[0-9A-Fa-f]{6}$/'],
+            'page_alt_color' => ['required', 'regex:/^#[0-9A-Fa-f]{6}$/'],
+            'surface_color' => ['required', 'regex:/^#[0-9A-Fa-f]{6}$/'],
+            'surface_soft_color' => ['required', 'regex:/^#[0-9A-Fa-f]{6}$/'],
+            'surface_alt_color' => ['required', 'regex:/^#[0-9A-Fa-f]{6}$/'],
+            'text_color' => ['required', 'regex:/^#[0-9A-Fa-f]{6}$/'],
+            'text_muted_color' => ['required', 'regex:/^#[0-9A-Fa-f]{6}$/'],
+            'border_color' => ['required', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'portal_logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
         ]);
 
@@ -171,6 +179,14 @@ class TenantProfileController extends Controller
         $branding['portal_title'] = $portalTitle !== '' ? $portalTitle : config('app.name', 'University Practicum');
         $branding['accent'] = strtoupper($validated['accent_color']);
         $branding['secondary'] = strtoupper($validated['secondary_color']);
+        $branding['page'] = strtoupper($validated['page_color']);
+        $branding['page_alt'] = strtoupper($validated['page_alt_color']);
+        $branding['surface'] = strtoupper($validated['surface_color']);
+        $branding['surface_soft'] = strtoupper($validated['surface_soft_color']);
+        $branding['surface_alt'] = strtoupper($validated['surface_alt_color']);
+        $branding['text'] = strtoupper($validated['text_color']);
+        $branding['text_muted'] = strtoupper($validated['text_muted_color']);
+        $branding['border'] = strtoupper($validated['border_color']);
         $branding['logo_path'] = $uploadManager->replace(
             $request->file('portal_logo'),
             $tenant,
@@ -266,6 +282,14 @@ class TenantProfileController extends Controller
         $branding = is_array($settings['branding'] ?? null) ? $settings['branding'] : [];
         $accent = (string) ($branding['accent'] ?? '');
         $secondary = (string) ($branding['secondary'] ?? '');
+        $page = (string) ($branding['page'] ?? '');
+        $pageAlt = (string) ($branding['page_alt'] ?? '');
+        $surface = (string) ($branding['surface'] ?? '');
+        $surfaceSoft = (string) ($branding['surface_soft'] ?? '');
+        $surfaceAlt = (string) ($branding['surface_alt'] ?? '');
+        $text = (string) ($branding['text'] ?? '');
+        $textMuted = (string) ($branding['text_muted'] ?? '');
+        $border = (string) ($branding['border'] ?? '');
 
         return [
             'portal_title' => filled($branding['portal_title'] ?? null)
@@ -273,6 +297,14 @@ class TenantProfileController extends Controller
                 : config('app.name', 'University Practicum'),
             'accent' => preg_match('/^#[0-9A-Fa-f]{6}$/', $accent) ? strtoupper($accent) : '#7B1C2E',
             'secondary' => preg_match('/^#[0-9A-Fa-f]{6}$/', $secondary) ? strtoupper($secondary) : '#F5A623',
+            'page' => preg_match('/^#[0-9A-Fa-f]{6}$/', $page) ? strtoupper($page) : '#09111F',
+            'page_alt' => preg_match('/^#[0-9A-Fa-f]{6}$/', $pageAlt) ? strtoupper($pageAlt) : '#0E1830',
+            'surface' => preg_match('/^#[0-9A-Fa-f]{6}$/', $surface) ? strtoupper($surface) : '#0F172A',
+            'surface_soft' => preg_match('/^#[0-9A-Fa-f]{6}$/', $surfaceSoft) ? strtoupper($surfaceSoft) : '#16213B',
+            'surface_alt' => preg_match('/^#[0-9A-Fa-f]{6}$/', $surfaceAlt) ? strtoupper($surfaceAlt) : '#1B2946',
+            'text' => preg_match('/^#[0-9A-Fa-f]{6}$/', $text) ? strtoupper($text) : '#EEF4FF',
+            'text_muted' => preg_match('/^#[0-9A-Fa-f]{6}$/', $textMuted) ? strtoupper($textMuted) : '#9EABC5',
+            'border' => preg_match('/^#[0-9A-Fa-f]{6}$/', $border) ? strtoupper($border) : '#8094C4',
             'logo_path' => $branding['logo_path'] ?? null,
         ];
     }

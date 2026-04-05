@@ -6,7 +6,7 @@
     @include('partials.rbac-matrix', [
         'title' => 'Role Permissions',
         'subtitle' => 'Tenant-level role matrix for '.$tenant->name.'.',
-        'description' => 'Control which actions each tenant role can perform inside this university portal.',
+        'description' => 'Turn feature access on or off per role using the matrix below.',
         'roles' => $roles,
         'definitions' => $definitions,
         'matrix' => $matrix,

@@ -87,10 +87,10 @@ class TenantAuthController extends Controller
     protected function loginAction($tenant, ?string $role): string
     {
         if (! $role) {
-            return route('tenant.login.default.store');
+            return route('tenant.login.default.store', [], false);
         }
 
-        return route('tenant.login.store', ['role' => $role]);
+        return route('tenant.login.store', ['role' => $role], false);
     }
 
     protected function roleForEmail(string $email): ?string
@@ -149,7 +149,7 @@ class TenantAuthController extends Controller
             'pageTitle' => 'University Portal | '.$portalTitle,
             'selectedLoginRole' => $role,
             'loginAction' => $this->loginAction($tenant, $role),
-            'registerUrl' => route('tenant.register.create'),
+            'registerUrl' => route('tenant.register.create', [], false),
         ]);
     }
 
@@ -165,13 +165,17 @@ class TenantAuthController extends Controller
         ]);
 
         $guard = $this->guardForRole($role);
+        $providerName = config("auth.guards.{$guard}.provider");
+        $provider = $providerName ? Auth::createUserProvider($providerName) : null;
+        $credentials = $request->only('email', 'password');
+        $authenticatedUser = $provider?->retrieveByCredentials($credentials);
 
-        if (! Auth::guard($guard)->attempt($request->only('email', 'password'), $request->boolean('remember'))) {
+        if (! $authenticatedUser || ! $provider->validateCredentials($authenticatedUser, $credentials)) {
             throw ValidationException::withMessages([
                 'email' => 'The provided credentials do not match our records.',
             ]);
         }
-
+        Auth::guard($guard)->login($authenticatedUser, $request->boolean('remember'));
         $authenticatedUser = Auth::guard($guard)->user();
 
         if (! $this->canAccessPortal($authenticatedUser, $role)) {
@@ -186,7 +190,7 @@ class TenantAuthController extends Controller
         $request->session()->put("tenant_context.{$guard}", (string) $tenant->getRouteKey());
 
         if ($role === 'admin' && $authenticatedUser->must_change_password) {
-            return redirect()->route('tenant.admin.password.setup.show');
+            return redirect()->to(route('tenant.admin.password.setup.show', [], false));
         }
 
         return redirect()->to($this->dashboardPath($role));
@@ -195,17 +199,17 @@ class TenantAuthController extends Controller
     protected function dashboardPath(string $role): string
     {
         return match ($role) {
-            'admin' => route('tenant.admin.dashboard'),
-            'supervisor' => route('tenant.supervisor.dashboard'),
-            default => route('tenant.student.dashboard'),
+            'admin' => route('tenant.admin.dashboard', [], false),
+            'supervisor' => route('tenant.supervisor.dashboard', [], false),
+            default => route('tenant.student.dashboard', [], false),
         };
     }
 
     protected function loginPagePath(string $role = 'admin'): string
     {
         return $role === 'admin'
-            ? route('tenant.login.default')
-            : route('tenant.login', ['role' => $role]);
+            ? route('tenant.login.default', [], false)
+            : route('tenant.login', ['role' => $role], false);
     }
 
     protected function normalizeRole(string $role): string

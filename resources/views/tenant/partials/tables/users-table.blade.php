@@ -1,15 +1,15 @@
-@php
+﻿@php
     $embedded = $embedded ?? false;
     $showHeading = $showHeading ?? true;
 @endphp
 
 @unless ($embedded)
-<article class="card">
+<article>
 @endunless
     @if ($showHeading)
-        <h2>RBAC & User Management</h2>
+        <h2>User Management</h2>
     @endif
-    <p class="section-hint" style="margin:0 0 16px;">Tenant admins manage student, supervisor, and coordinator access for this university portal.</p>
+    <p>Tenant admins manage student, supervisor, and coordinator accounts for this university portal.</p>
     @if ($userDirectory->isEmpty())
         <p>No university portal users yet.</p>
     @else
@@ -19,17 +19,22 @@
                 @foreach ($userDirectory as $user)
                     <tr>
                         <td>{{ $user['name'] }}<br><small>{{ $user['email'] }}</small></td>
-                        <td><span class="badge">{{ strtoupper($user['role'] === 'admin' ? 'internship coordinator' : ($user['role'] === 'supervisor' ? 'company supervisor' : $user['role'])) }}</span></td>
+                        <td><span class="table-badge">{{ strtoupper($user['role'] === 'admin' ? 'internship coordinator' : ($user['role'] === 'supervisor' ? 'company supervisor' : $user['role'])) }}</span></td>
                         <td>{{ $user['context'] }}</td>
                         <td>
                             @if (array_key_exists('email_verified_at', $user))
-                                <span class="status-pill {{ $user['email_verified_at'] ? 'active' : 'scheduled' }}">{{ $user['email_verified_at'] ? 'Verified' : 'Pending' }}</span>
+                                <span class="table-badge">{{ $user['email_verified_at'] ? 'Verified' : 'Pending' }}</span>
                             @else
-                                <span class="pill">Managed</span>
+                                <span class="table-badge">Managed</span>
                             @endif
                         </td>
-                        <td><span class="status-pill {{ $user['status'] === 'active' ? 'active' : ($user['status'] === 'pending verification' ? 'scheduled' : 'suspended') }}">{{ ucfirst($user['status']) }}</span></td>
-                        <td><a class="panel-link" href="{{ $dashboardBaseUrl.'?section=users&edit='.$user['key'] }}">Edit</a></td>
+                        <td><span class="table-badge">{{ ucfirst($user['status']) }}</span></td>
+                        <td>
+                            <a class="action-icon-button action-icon-button-secondary" href="{{ $dashboardBaseUrl.'?section=users&edit='.$user['key'] }}" title="Edit user" aria-label="Edit user">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                                <span class="sr-only">Edit</span>
+                            </a>
+                        </td>
                     </tr>
                 @endforeach
             </tbody>

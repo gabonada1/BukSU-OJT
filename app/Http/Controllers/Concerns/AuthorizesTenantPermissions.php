@@ -24,6 +24,18 @@ trait AuthorizesTenantPermissions
 
     protected function currentTenantActor(): array
     {
+        if (request()->routeIs('tenant*.admin.*') && ($user = Auth::guard('tenant_admin')->user())) {
+            return [RbacMatrix::TENANT_ADMIN_ROLE, $user];
+        }
+
+        if (request()->routeIs('tenant*.supervisor.*') && ($user = Auth::guard('supervisor')->user())) {
+            return ['supervisor', $user];
+        }
+
+        if (request()->routeIs('tenant*.student.*') && ($user = Auth::guard('student')->user())) {
+            return ['student', $user];
+        }
+
         if ($user = Auth::guard('tenant_admin')->user()) {
             return [RbacMatrix::TENANT_ADMIN_ROLE, $user];
         }

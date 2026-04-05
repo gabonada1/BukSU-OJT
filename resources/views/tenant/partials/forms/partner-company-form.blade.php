@@ -1,4 +1,4 @@
-@php
+﻿@php
     $embedded = $embedded ?? false;
     $showHeading = $showHeading ?? true;
     $mode = $mode ?? 'create';
@@ -15,7 +15,7 @@
 @endphp
 
 @unless ($embedded)
-<article class="card">
+<article >
 @endunless
     @if ($showHeading)
         <h2>{{ $isEditing ? 'Edit Partner Organization' : 'New Partner Organization' }}</h2>
@@ -28,11 +28,11 @@
         <label>Organization Name <input type="text" name="name" value="{{ old('name', $company?->name) }}" required></label>
         <label>Industry / Type <input type="text" name="industry" value="{{ old('industry', $company?->industry) }}"></label>
         <label>Available Positions <textarea name="available_positions" placeholder="One position per line">{{ old('available_positions', $company?->available_positions) }}</textarea></label>
-        <fieldset class="checkbox-group-card">
+        <fieldset >
             <legend>Required Documents</legend>
-            <div class="checkbox-grid">
+            <div >
                 @foreach ($documentOptions as $documentOption)
-                    <label class="checkbox-label">
+                    <label >
                         <input type="checkbox" name="required_documents[]" value="{{ $documentOption }}" @checked(in_array($documentOption, $selectedDocuments, true))>
                         <span>{{ $documentOption }}</span>
                     </label>
@@ -44,8 +44,9 @@
         <label>Contact Email <input type="email" name="contact_email" value="{{ old('contact_email', $company?->contact_email) }}"></label>
         <label>Contact Phone <input type="text" name="contact_phone" value="{{ old('contact_phone', $company?->contact_phone) }}"></label>
         <label>OJT Slot Limit <input type="number" name="intern_slot_limit" min="1" value="{{ old('intern_slot_limit', $company?->intern_slot_limit ?? 10) }}" required></label>
-        <button type="submit" class="small-button">{{ $isEditing ? 'Save Changes' : 'Save Organization' }}</button>
+        <button type="submit" >{{ $isEditing ? 'Save Changes' : 'Save Organization' }}</button>
     </form>
 @unless ($embedded)
 </article>
 @endunless
+

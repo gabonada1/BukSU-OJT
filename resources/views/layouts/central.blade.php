@@ -5,14 +5,11 @@
     $systemLogo = asset('images/logos/logo.jpg');
     $centralCurrentSection = request()->query('section', 'overview');
     $centralNavigation = [
-        ['label' => 'Dashboard', 'href' => route('central.dashboard').'?section=overview', 'active' => $centralCurrentSection === 'overview', 'meta' => 'Overview', 'icon' => '📊'],
-        ['label' => 'Tenant Directory', 'href' => route('central.dashboard').'?section=directory', 'active' => $centralCurrentSection === 'directory', 'meta' => 'All colleges', 'icon' => '🏢'],
-        ['label' => 'Register Tenant', 'href' => 'javascript:void(0)', 'active' => false, 'meta' => 'New college', 'icon' => '➕'],
-        ['label' => 'Subscriptions', 'href' => 'javascript:void(0)', 'active' => false, 'meta' => 'Plans', 'icon' => '💳'],
-        ['label' => 'Access Control', 'href' => 'javascript:void(0)', 'active' => false, 'meta' => 'Permissions', 'icon' => '🔐'],
-        ['label' => 'Audit Logs', 'href' => 'javascript:void(0)', 'active' => false, 'meta' => 'History', 'icon' => '📋'],
+        ['label' => 'Overview', 'href' => route('central.dashboard').'?section=overview', 'active' => $centralCurrentSection === 'overview', 'meta' => 'System pulse', 'icon' => 'fa-chart-line'],
+        ['label' => 'Applications', 'href' => route('central.dashboard').'?section=applications', 'active' => $centralCurrentSection === 'applications', 'meta' => 'Plan reviews', 'icon' => 'fa-inbox'],
+        ['label' => 'Directory', 'href' => route('central.dashboard').'?section=directory', 'active' => $centralCurrentSection === 'directory', 'meta' => 'Tenant records', 'icon' => 'fa-building'],
     ];
-    $activeCentralNav = collect($centralNavigation)->first(fn ($item) => $item['active'] ?? false);
+    $activeCentralNav = collect($centralNavigation)->first(fn ($item) => $item['active'] ?? false) ?? $centralNavigation[0];
 @endphp
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
@@ -22,67 +19,100 @@
         <title>{{ $pageTitle ?? config('app.name', 'University Practicum') }}</title>
         @include('layouts.partials.app-theme')
     </head>
-    <body class="theme-{{ $layoutMode }} central-admin-theme">
-        <main class="shell {{ $layoutMode === 'login' ? 'shell-login' : '' }}">
-            @if ($hideCentralHeader)
+    <body class="app-shell-body theme-{{ $layoutMode }}">
+        @include('layouts.partials.app-feedback')
+
+        @if ($hideCentralHeader)
+            <main class="auth-shell">
                 @yield('content')
-            @else
-                <div class="console-shell">
-                    <aside class="console-sidebar">
-                        <div class="console-brand">
-                            <div class="console-brand-mark">
-                                <img src="{{ $systemLogo }}" alt="Bukidnon State University Logo" class="brand-logo-image">
+            </main>
+        @else
+            <main class="app-shell" data-app-shell>
+                <div class="app-overlay" data-app-overlay></div>
+
+                <div class="app-frame">
+                    <aside class="app-sidebar">
+                        <div class="app-sidebar-header">
+                            <div class="app-brand-mark">
+                                <img src="{{ $systemLogo }}" alt="Bukidnon State University Logo">
                             </div>
-                            <div>
-                                <strong class="console-brand-title">BukSU Admin</strong>
-                                <span class="console-brand-subtitle">Superadmin</span>
+                            <div class="app-brand-copy">
+                                <span class="app-brand-kicker">Central Console</span>
+                                <strong class="app-brand-title">BukSU Admin</strong>
+                                <p class="app-brand-subtitle">University-level practicum operations</p>
                             </div>
                         </div>
 
-                        <nav class="console-nav" aria-label="University administration navigation">
-                            @foreach ($centralNavigation as $item)
-                                <a class="console-nav-link {{ ($item['active'] ?? false) ? 'active' : '' }}" href="{{ $item['href'] }}" title="{{ $item['meta'] }}">
-                                    <span class="nav-icon">{{ $item['icon'] }}</span>
-                                    <span class="nav-label">
-                                        <span>{{ $item['label'] }}</span>
-                                        <span>{{ $item['meta'] }}</span>
-                                    </span>
-                                </a>
-                            @endforeach
-                        </nav>
+                        <div class="app-nav-group">
+                            <span class="app-nav-label">Main</span>
+                            <nav class="app-nav" aria-label="Central navigation">
+                                @foreach ($centralNavigation as $item)
+                                    <a class="app-nav-link{{ ($item['active'] ?? false) ? ' active' : '' }}" href="{{ $item['href'] }}" title="{{ $item['meta'] }}">
+                                        <span class="app-nav-icon"><i class="fa-solid {{ $item['icon'] }}"></i></span>
+                                        <span class="app-nav-copy">
+                                            <span>{{ $item['label'] }}</span>
+                                            <small>{{ $item['meta'] }}</small>
+                                        </span>
+                                    </a>
+                                @endforeach
+                            </nav>
+                        </div>
 
-                        <div class="console-sidebar-footer">
-                            <form method="POST" action="{{ route('central.logout') }}" class="chrome-inline-form">
+                        <div class="app-sidebar-footer">
+                            <span class="app-nav-label">Account</span>
+                            <form method="POST" action="{{ route('central.logout') }}">
                                 @csrf
-                                <button type="submit" class="console-logout-button">Logout</button>
+                                <button type="submit" class="app-nav-link app-nav-link-button">
+                                    <span class="app-nav-icon"><i class="fa-solid fa-arrow-right-from-bracket"></i></span>
+                                    <span class="app-nav-copy">
+                                        <span>Sign Out</span>
+                                        <small>{{ $centralActor?->name ?: 'System Administrator' }}</small>
+                                    </span>
+                                </button>
                             </form>
                         </div>
                     </aside>
 
-                    <div class="console-main">
-                        <header class="console-topbar">
-                            <div class="console-topbar-left">
-                                <a class="console-topbar-back" href="{{ route('central.dashboard') }}">&lsaquo;</a>
-                                <div>
-                                    <strong>{{ $activeCentralNav['label'] ?? 'Superadmin' }}</strong>
-                                    <span>Superadmin</span>
+                    <div class="app-main">
+                        <header class="app-topbar">
+                            <div class="app-topbar-main">
+                                <button type="button" class="app-icon-button desktop-only" data-sidebar-toggle aria-label="Toggle sidebar">
+                                    <span class="app-icon-lines" aria-hidden="true">
+                                        <span></span>
+                                        <span></span>
+                                    </span>
+                                </button>
+                                <button type="button" class="app-icon-button mobile-only" data-mobile-sidebar-toggle aria-label="Open sidebar">
+                                    <span class="app-icon-lines app-icon-lines-menu" aria-hidden="true">
+                                        <span></span>
+                                        <span></span>
+                                        <span></span>
+                                    </span>
+                                </button>
+                                <div class="app-topbar-copy">
+                                    <strong>{{ $activeCentralNav['label'] }}</strong>
+                                    <span>{{ $activeCentralNav['meta'] }}</span>
                                 </div>
                             </div>
-                            <div class="console-topbar-user">
-                                <span class="console-avatar">{{ strtoupper(substr((string) ($centralActor?->name ?: 'SA'), 0, 1)) }}</span>
-                                <div>
-                                    <strong>{{ $centralActor?->name ?: 'System Administrator' }}</strong>
-                                    <span>System Administrator</span>
+
+                            <div class="app-topbar-actions">
+                                <a class="panel-link" href="{{ route('app.entry') }}">Open Landing Page</a>
+                                <div class="app-user-chip">
+                                    <span class="app-user-avatar">{{ strtoupper(substr((string) ($centralActor?->name ?: 'SA'), 0, 1)) }}</span>
+                                    <div>
+                                        <strong>{{ $centralActor?->name ?: 'System Administrator' }}</strong>
+                                        <span>Central superadmin</span>
+                                    </div>
                                 </div>
                             </div>
                         </header>
 
-                        <section class="console-content">
+                        <section class="app-content">
                             @yield('content')
                         </section>
                     </div>
                 </div>
-            @endif
-        </main>
+            </main>
+        @endif
     </body>
 </html>

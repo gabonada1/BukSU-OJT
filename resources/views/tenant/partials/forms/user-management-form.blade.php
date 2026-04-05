@@ -1,4 +1,4 @@
-@php
+﻿@php
     $embedded = $embedded ?? false;
     $showHeading = $showHeading ?? true;
     $userRecord = $editingUser ?? null;
@@ -9,10 +9,10 @@
 @endphp
 
 @unless ($embedded)
-<article class="card">
+<article >
 @endunless
     @if ($showHeading)
-        <h2>Edit User RBAC</h2>
+        <h2>Edit User</h2>
     @endif
 
     @if ($userRecord)
@@ -36,12 +36,13 @@
                     <option value="0" @selected((string) old('is_active', (int) $userRecord['is_active']) === '0')>Suspended</option>
                 </select>
             </label>
-            <p class="field-hint">
-                This RBAC form lets the tenant admin change role and access state inside the current university portal while preserving the user's email and password.
+            <p >
+                Update the selected account's role and access state while keeping the existing email and password intact.
             </p>
-            <button type="submit" class="small-button">Save User</button>
+            <button type="submit" >Save User</button>
         </form>
     @endif
 @unless ($embedded)
 </article>
 @endunless
+

@@ -1,10 +1,10 @@
-@php
+﻿@php
     $embedded = $embedded ?? false;
     $showHeading = $showHeading ?? true;
 @endphp
 
 @unless ($embedded)
-<article class="card">
+<article>
 @endunless
     @if ($showHeading)
         <h2>Partner Organizations</h2>
@@ -32,11 +32,21 @@
                             @endif
                         </td>
                         <td>{{ $company->intern_slot_limit }}</td>
-                        <td><a class="panel-link" href="{{ $dashboardBaseUrl.'?section=companies&edit='.$company->id }}">Edit</a></td>
+                        <td>
+                            <a class="action-icon-button action-icon-button-secondary" href="{{ $dashboardBaseUrl.'?section=companies&edit='.$company->id }}" title="Edit company" aria-label="Edit company">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                                <span class="sr-only">Edit</span>
+                            </a>
+                        </td>
                     </tr>
                 @endforeach
             </tbody>
         </table>
+        @if ($companies->hasPages())
+            <div class="pagination">
+                {{ $companies->links() }}
+            </div>
+        @endif
     @endif
 @unless ($embedded)
 </article>

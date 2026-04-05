@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Central;
 
 use App\Http\Controllers\Controller;
+use App\Models\Tenant;
 use App\Mail\TenantPlanApplicationPendingApprovalMail;
 use App\Models\TenantDomain;
 use App\Models\TenantPlanApplication;
@@ -10,6 +11,7 @@ use App\Support\Billing\PlanCatalog;
 use App\Support\Billing\StripeCheckout;
 use App\Support\Tenancy\TenantProvisioner;
 use App\Support\Tenancy\TenantUrlGenerator;
+use Illuminate\Support\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -191,29 +193,32 @@ class PlanApplicationController extends Controller
         }
 
         $validated = $request->validate([
-            'database' => ['required', 'regex:/^[A-Za-z0-9_]+$/', Rule::unique('central.tenants', 'database')],
             'subdomain' => ['nullable', 'alpha_dash', 'max:100'],
             'domain' => ['nullable', 'string', 'max:255'],
             'subscription_starts_at' => ['required', 'date'],
             'subscription_expires_at' => ['nullable', 'date', 'after_or_equal:subscription_starts_at'],
             'bandwidth_limit_gb' => ['required', 'numeric', 'min:1', 'max:100000'],
             'bandwidth_used_gb' => ['nullable', 'numeric', 'min:0', 'lte:bandwidth_limit_gb'],
-            'admin_password' => ['nullable', 'string', 'min:8'],
+            'admin_password' => ['required', 'string', 'min:8'],
             'approval_notes' => ['nullable', 'string', 'max:1000'],
         ]);
         $domainHosts = $this->resolvedDomainHosts($validated, $application);
         $this->ensureDomainHostsAreAvailable($domainHosts);
+        $databaseName = $this->approvedDatabaseName($application);
+        $subscriptionExpiresAt = filled($validated['subscription_expires_at'] ?? null)
+            ? $validated['subscription_expires_at']
+            : Carbon::parse($validated['subscription_starts_at'])->addMonthNoOverflow()->toDateString();
 
         try {
             $tenant = $this->tenantProvisioner->provision([
                 'name' => $application->college_name,
                 'plan' => $application->selected_plan,
                 'subscription_starts_at' => $validated['subscription_starts_at'],
-                'subscription_expires_at' => $validated['subscription_expires_at'] ?? null,
+                'subscription_expires_at' => $subscriptionExpiresAt,
                 'domain_hosts' => $domainHosts,
-                'database' => $validated['database'],
+                'database' => $databaseName,
                 'admin_email' => $application->admin_email,
-                'admin_password' => $validated['admin_password'] ?? null,
+                'admin_password' => $validated['admin_password'],
                 'settings' => [
                     'provisioned_by' => 'approved_plan_application',
                     'application_id' => $application->getKey(),
@@ -237,7 +242,7 @@ class PlanApplicationController extends Controller
                 'section' => 'applications',
                 'review' => $application->getKey(),
             ])->withErrors([
-                'approval' => 'The tenant could not be provisioned. Check your database settings and try again.',
+                'approval' => $this->provisioningErrorMessage($exception),
             ]);
         }
 
@@ -271,9 +276,17 @@ class PlanApplicationController extends Controller
             ->with('status', $application->college_name.' was marked as rejected.');
     }
 
-    public static function suggestedDatabaseName(string $collegeName): string
+    public static function suggestedDatabaseName(
+        string $collegeName,
+        ?string $adminEmail = null,
+        int|string|null $applicationKey = null,
+    ): string
     {
-        return 'buksu_'.Str::of($collegeName)->snake()->replace('-', '_');
+        return substr(hash('sha256', implode('|', [
+            $applicationKey ?? 'preview',
+            Str::lower(trim($collegeName)),
+            Str::lower(trim((string) $adminEmail)),
+        ])), 0, 24);
     }
 
     public static function suggestedSubdomain(string $collegeName): string
@@ -350,5 +363,39 @@ class PlanApplicationController extends Controller
             });
 
         return $failures;
+    }
+
+    protected function approvedDatabaseName(TenantPlanApplication $application): string
+    {
+        $base = self::suggestedDatabaseName(
+            $application->college_name,
+            $application->admin_email,
+            $application->getKey(),
+        );
+
+        $candidate = $base;
+        $suffix = 0;
+
+        while (Tenant::query()->where('database', $candidate)->exists()) {
+            $suffix++;
+            $candidate = $base.'_'.str_pad((string) $suffix, 4, '0', STR_PAD_LEFT);
+        }
+
+        return $candidate;
+    }
+
+    protected function provisioningErrorMessage(Throwable $exception): string
+    {
+        $message = $exception->getMessage();
+
+        if (str_contains($message, 'SQLSTATE[HY000] [2002]')) {
+            return 'The tenant could not be provisioned because the central MySQL server is unreachable at 127.0.0.1:3306. Start MySQL and try approving the application again.';
+        }
+
+        if (app()->hasDebugModeEnabled()) {
+            return 'The tenant could not be provisioned. '.$message;
+        }
+
+        return 'The tenant could not be provisioned. Check your database settings and try again.';
     }
 }

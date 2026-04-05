@@ -1,4 +1,4 @@
-@php
+﻿@php
     $embedded = $embedded ?? false;
     $showHeading = $showHeading ?? true;
     $mode = $mode ?? 'create';
@@ -10,7 +10,7 @@
 @endphp
 
 @unless ($embedded)
-<article class="card">
+<article >
 @endunless
     @if ($showHeading)
         <h2>{{ $isEditing ? 'Edit Progress / Hour Log' : 'New Progress / Hour Log' }}</h2>
@@ -40,8 +40,9 @@
         </label>
         <label>Company Supervisor Name <input type="text" name="supervisor_name" value="{{ old('supervisor_name', $hourRecord?->supervisor_name) }}"></label>
         <label>Activity <textarea name="activity" required placeholder="Describe the work completed during this shift">{{ old('activity', $hourRecord?->activity) }}</textarea></label>
-        <button type="submit" class="small-button">{{ $isEditing ? 'Save Changes' : 'Save Progress Log' }}</button>
+        <button type="submit" >{{ $isEditing ? 'Save Changes' : 'Save Progress Log' }}</button>
     </form>
 @unless ($embedded)
 </article>
 @endunless
+

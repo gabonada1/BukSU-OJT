@@ -11,6 +11,7 @@ use App\Models\Student;
 use App\Models\StudentRequirement;
 use App\Models\Supervisor;
 use App\Models\TenantAdmin;
+use App\Support\Security\RbacMatrix;
 use App\Support\Tenancy\CurrentTenant;
 use Illuminate\View\View;
 
@@ -25,23 +26,37 @@ class TenantDashboardController extends Controller
         abort_unless($tenant, 404);
         $this->authorizeTenantPermission('user.read', $tenant);
 
-        $companies = PartnerCompany::query()->with('supervisors')->latest()->get();
-        $students = Student::query()->with(['partnerCompany', 'applications', 'course'])->latest()->get();
-        $applications = InternshipApplication::query()->with(['student', 'partnerCompany'])->latest()->get();
+        $companies = PartnerCompany::query()->with('supervisors')->latest()->paginate(5, ['*'], 'companies_page')->withQueryString();
+        $students = Student::query()->with(['partnerCompany', 'applications', 'course'])->latest()->paginate(5, ['*'], 'students_page')->withQueryString();
+        $applications = InternshipApplication::query()->with(['student', 'partnerCompany'])->latest()->paginate(5, ['*'], 'applications_page')->withQueryString();
         $courses = Course::active()->get();
-        $supervisors = Supervisor::query()->with('partnerCompany')->latest()->get();
-        $requirements = StudentRequirement::query()->with('student')->latest()->get();
-        $hourLogs = OjtHourLog::query()->with('student')->latest('log_date')->get();
-        $userDirectory = $this->userDirectory($students, $supervisors);
+        $supervisors = Supervisor::query()->with('partnerCompany')->latest()->paginate(5, ['*'], 'supervisors_page')->withQueryString();
+        $requirements = StudentRequirement::query()->with('student')->latest()->paginate(5, ['*'], 'requirements_page')->withQueryString();
+        $hourLogs = OjtHourLog::query()->with('student')->latest('log_date')->paginate(5, ['*'], 'hours_page')->withQueryString();
+        
+        // Get all records for statistics and editing
+        $allCompanies = PartnerCompany::query()->with('supervisors')->latest()->get();
+        $allStudents = Student::query()->with(['partnerCompany', 'applications', 'course'])->latest()->get();
+        $allApplications = InternshipApplication::query()->with(['student', 'partnerCompany'])->latest()->get();
+        $allSupervisors = Supervisor::query()->with('partnerCompany')->latest()->get();
+        $allRequirements = StudentRequirement::query()->with('student')->latest()->get();
+        $allHourLogs = OjtHourLog::query()->with('student')->latest('log_date')->get();
+        
+        $userDirectory = $this->userDirectory($allStudents, $allSupervisors);
         $currentSection = request()->query('section', 'companies');
         $editKey = request()->query('edit');
         $studentApplicationStudentId = (int) request()->query('student_applications');
         $portalTitle = data_get($tenant->settings, 'branding.portal_title', config('app.name', 'University Practicum'));
+        $adminPermissions = collect(array_keys(RbacMatrix::defaultTenantMatrix()))
+            ->mapWithKeys(fn (string $permission) => [
+                $permission => RbacMatrix::tenantAllows($tenant, RbacMatrix::TENANT_ADMIN_ROLE, $permission),
+            ])
+            ->all();
         $selectedStudent = $studentApplicationStudentId > 0
-            ? $students->firstWhere('id', $studentApplicationStudentId)
+            ? $allStudents->firstWhere('id', $studentApplicationStudentId)
             : null;
         $selectedStudentApplications = $selectedStudent
-            ? $applications->where('student_id', $selectedStudent->getKey())->values()
+            ? $allApplications->where('student_id', $selectedStudent->getKey())->values()
             : collect();
 
         return view('tenant.admin.dashboard', [
@@ -67,10 +82,10 @@ class TenantDashboardController extends Controller
                 'The sample tenant uses Bukidnon State University - College of Technologies.',
             ],
             'stats' => [
-                'companies' => $companies->count(),
-                'students' => $students->count(),
-                'applications' => $applications->count(),
-                'supervisors' => $supervisors->count(),
+                'companies' => $allCompanies->count(),
+                'students' => $allStudents->count(),
+                'applications' => $allApplications->count(),
+                'supervisors' => $allSupervisors->count(),
                 'users' => $userDirectory->count(),
                 'approved_requirements' => StudentRequirement::query()->where('status', 'approved')->count(),
                 'approved_hours' => round((float) OjtHourLog::query()->where('status', 'approved')->sum('hours'), 2),
@@ -91,12 +106,12 @@ class TenantDashboardController extends Controller
             ],
             'userDirectory' => $userDirectory,
             'editing' => [
-                'companies' => $currentSection === 'companies' ? $companies->firstWhere('id', (int) $editKey) : null,
-                'applications' => $applications->firstWhere('id', (int) $editKey),
-                'supervisors' => $currentSection === 'supervisors' ? $supervisors->firstWhere('id', (int) $editKey) : null,
-                'students' => $currentSection === 'students' ? $students->firstWhere('id', (int) $editKey) : null,
-                'requirements' => $currentSection === 'requirements' ? $requirements->firstWhere('id', (int) $editKey) : null,
-                'hours' => $currentSection === 'hours' ? $hourLogs->firstWhere('id', (int) $editKey) : null,
+                'companies' => $currentSection === 'companies' ? $allCompanies->firstWhere('id', (int) $editKey) : null,
+                'applications' => $allApplications->firstWhere('id', (int) $editKey),
+                'supervisors' => $currentSection === 'supervisors' ? $allSupervisors->firstWhere('id', (int) $editKey) : null,
+                'students' => $currentSection === 'students' ? $allStudents->firstWhere('id', (int) $editKey) : null,
+                'requirements' => $currentSection === 'requirements' ? $allRequirements->firstWhere('id', (int) $editKey) : null,
+                'hours' => $currentSection === 'hours' ? $allHourLogs->firstWhere('id', (int) $editKey) : null,
                 'users' => $currentSection === 'users' ? $userDirectory->firstWhere('key', $editKey) : null,
             ],
             'requirementStatuses' => ['submitted', 'approved', 'revision', 'rejected'],
@@ -105,6 +120,8 @@ class TenantDashboardController extends Controller
             'applicationStatuses' => ['pending', 'accepted', 'rejected', 'deployed'],
             'userRoleOptions' => ['admin', 'supervisor', 'student'],
             'formActions' => $this->formActions($tenant),
+            'rbacIndexUrl' => route('tenant.admin.rbac.index'),
+            'tenantPermissions' => $adminPermissions,
         ]);
     }
 

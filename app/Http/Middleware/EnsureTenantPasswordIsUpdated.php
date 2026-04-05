@@ -21,6 +21,6 @@ class EnsureTenantPasswordIsUpdated
             return $next($request);
         }
 
-        return redirect()->route('tenant.admin.password.setup.show');
+        return redirect()->to(route('tenant.admin.password.setup.show', [], false));
     }
 }

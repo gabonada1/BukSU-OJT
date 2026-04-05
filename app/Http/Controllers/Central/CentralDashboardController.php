@@ -19,12 +19,17 @@ class CentralDashboardController extends Controller
 
     public function __invoke(): View
     {
-        $tenants = Tenant::query()->with(['domains', 'primaryDomain'])->latest()->get();
-        $applications = TenantPlanApplication::query()->with(['tenant.domains', 'tenant.primaryDomain'])->latest()->get();
-        $tenantBandwidthProfiles = $tenants
+        $tenants = Tenant::query()->with(['domains', 'primaryDomain'])->latest()->paginate(5, ['*'], 'tenants_page')->withQueryString();
+        $applications = TenantPlanApplication::query()->with(['tenant.domains', 'tenant.primaryDomain'])->latest()->paginate(5, ['*'], 'applications_page')->withQueryString();
+        
+        // Get all records for statistics
+        $allTenants = Tenant::query()->with(['domains', 'primaryDomain'])->latest()->get();
+        $allApplications = TenantPlanApplication::query()->with(['tenant.domains', 'tenant.primaryDomain'])->latest()->get();
+        
+        $tenantBandwidthProfiles = $allTenants
             ->map(fn (Tenant $tenant) => $this->bandwidthProfile($tenant))
             ->keyBy('id');
-        $tenantContacts = $tenants->mapWithKeys(function (Tenant $tenant): array {
+        $tenantContacts = $allTenants->mapWithKeys(function (Tenant $tenant): array {
             $contact = rescue(fn () => $this->contactResolver->contacts($tenant)->first(), report: false);
 
             return [
@@ -52,12 +57,12 @@ class CentralDashboardController extends Controller
             ],
             'bandwidthTotals' => $this->bandwidthTotals($tenantBandwidthProfiles),
             'stats' => [
-                'active_tenants' => $tenants->filter(fn (Tenant $tenant) => $tenant->canAccessTenantApp())->count(),
-                'suspended_tenants' => $tenants->filter(fn (Tenant $tenant) => $tenant->subscriptionStatus() === 'suspended')->count(),
-                'expiring_tenants' => $tenants->filter(fn (Tenant $tenant) => $tenant->subscription_expires_at?->isBetween(now()->startOfDay(), now()->addDays(30)->endOfDay()))->count(),
-                'pending_applications' => $applications->whereIn('status', ['submitted', 'pending_approval'])->count(),
-                'paid_applications' => $applications->where('payment_status', 'paid')->count(),
-                'premium_plans' => $tenants->where('plan', 'premium')->count(),
+                'active_tenants' => $allTenants->filter(fn (Tenant $tenant) => $tenant->canAccessTenantApp())->count(),
+                'suspended_tenants' => $allTenants->filter(fn (Tenant $tenant) => $tenant->subscriptionStatus() === 'suspended')->count(),
+                'expiring_tenants' => $allTenants->filter(fn (Tenant $tenant) => $tenant->subscription_expires_at?->isBetween(now()->startOfDay(), now()->addDays(30)->endOfDay()))->count(),
+                'pending_applications' => $allApplications->whereIn('status', ['submitted', 'pending_approval'])->count(),
+                'paid_applications' => $allApplications->where('payment_status', 'paid')->count(),
+                'premium_plans' => $allTenants->where('plan', 'premium')->count(),
             ],
             'planBandwidthDefaults' => $this->bandwidthDefaults(),
             'tenantContacts' => $tenantContacts,

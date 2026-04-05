@@ -25,6 +25,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Set pagination view
+        \Illuminate\Pagination\Paginator::useBootstrapFour();
+        
         Gate::define('manage-tenants', fn (?CentralSuperadmin $user) => $user?->canManageTenants() ?? false);
         Gate::define('manage-tenant-users', fn (?TenantAdmin $user) => $user?->canManageTenantUsers() ?? false);
 

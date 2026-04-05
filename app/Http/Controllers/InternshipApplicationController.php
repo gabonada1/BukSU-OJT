@@ -106,7 +106,7 @@ class InternshipApplicationController extends Controller
         $student = Auth::guard('student')->user();
 
         abort_unless($tenant && $student, 404);
-        $this->authorizeTenantPermission('application.manage', $tenant);
+        $this->authorizeTenantPermission('application.submit', $tenant);
 
         if (InternshipApplication::query()
             ->where('student_id', $student->getKey())

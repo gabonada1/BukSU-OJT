@@ -10,7 +10,7 @@ trait InteractsWithTenantRouting
 {
     protected function tenantRoute(Tenant $tenant, string $name, array $parameters = []): string
     {
-        return route("tenant.{$name}", $parameters);
+        return route("tenant.{$name}", $parameters, false);
     }
 
     protected function redirectToTenantRoute(Request $request, Tenant $tenant, string $name, array $parameters = [], ?string $status = null): RedirectResponse

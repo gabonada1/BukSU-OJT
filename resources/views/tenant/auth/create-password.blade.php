@@ -1,4 +1,4 @@
-@php
+﻿@php
     $layoutMode = 'login';
     $hideTenantHeader = true;
     $tenantBranding = is_array($tenant->settings['branding'] ?? null) ? $tenant->settings['branding'] : [];
@@ -13,60 +13,61 @@
 @extends('layouts.tenant')
 
 @section('content')
-    <section class="login-stage">
-        <article class="login-panel">
-            <div class="login-panel-brand">
-                <img src="{{ $systemLogo }}" alt="{{ $tenantPortalTitle }} Logo" class="login-panel-logo">
-                <div class="eyebrow">First Login</div>
-            </div>
-
-            <div class="login-panel-copy">
-                <h1>Create a New Password</h1>
-                <p class="login-panel-subtitle">{{ $tenantPortalTitle }}</p>
-                <p class="lead">
-                    Your account was created with a temporary password. Create your personal password now before continuing to the university portal.
-                </p>
-                <div class="login-divider"></div>
-                <p class="login-university-tagline">{{ $tenant->name }}</p>
-            </div>
-
-            @if ($errors->any())
-                <div class="error-panel">
-                    <strong>Password not updated.</strong>
-                    <ul style="margin:8px 0 0;padding-left:18px;">
-                        @foreach ($errors->all() as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
+    <section class="first-login-shell">
+        <article class="auth-card auth-card-wide first-login-card">
+            <aside class="first-login-panel">
+                <div class="first-login-brand">
+                    <div class="first-login-logo-wrap">
+                        <img src="{{ $systemLogo }}" alt="{{ $tenantPortalTitle }} Logo" class="first-login-logo">
+                    </div>
+                    <span class="app-section-kicker">First Login</span>
                 </div>
-            @endif
 
-            <form method="POST" action="{{ $passwordSetupAction }}" class="login-form">
-                @csrf
-                <label>
-                    New Password
-                    <input type="password" name="password" placeholder="Create a strong password" required>
-                </label>
-                <label>
-                    Confirm Password
-                    <input type="password" name="password_confirmation" placeholder="Confirm your new password" required>
-                </label>
-                <button type="submit">Save New Password</button>
-            </form>
-        </article>
-
-        <article class="login-art">
-            <div class="logo-showcase">
-                <div class="logo-showcase-frame">
-                    <img src="{{ $systemLogo }}" alt="{{ $tenantPortalTitle }} Logo" class="logo-showcase-image">
+                <div class="first-login-summary">
+                    <p class="first-login-eyebrow">{{ $tenantPortalTitle }}</p>
+                    <h1>Create a New Password</h1>
+                    <p>
+                        Your account was created with a temporary password. Create your personal password now before continuing to the university portal.
+                    </p>
                 </div>
-                <div class="logo-showcase-copy">
-                    <div class="eyebrow">{{ $tenantPortalTitle }}</div>
-                    <h3>{{ $tenant->name }}</h3>
+
+                <div class="first-login-tenant">
+                    <strong>{{ $tenant->name }}</strong>
+                    <span>Password Setup Required</span>
+                </div>
+
+                <div class="auth-note first-login-note">
+                    <strong>Next step</strong>
                     <p>After saving your new password, you will be sent directly to the tenant admin dashboard.</p>
-                    <span class="preview-chip">Password Setup Required</span>
                 </div>
+            </aside>
+
+            <div class="first-login-form-area">
+                @if ($errors->any())
+                    <div class="error-panel">
+                        <strong>Password not updated.</strong>
+                        <ul>
+                            @foreach ($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+
+                <form method="POST" action="{{ $passwordSetupAction }}" class="first-login-form">
+                    @csrf
+                    <label>
+                        New Password
+                        <input type="password" name="password" placeholder="Create a strong password" required>
+                    </label>
+                    <label>
+                        Confirm Password
+                        <input type="password" name="password_confirmation" placeholder="Confirm your new password" required>
+                    </label>
+                    <button type="submit">Save New Password</button>
+                </form>
             </div>
         </article>
     </section>
 @endsection
+

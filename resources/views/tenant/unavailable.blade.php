@@ -1,4 +1,4 @@
-@php
+﻿@php
     $appUrl = config('app.url', request()->getSchemeAndHttpHost());
     $appParts = parse_url($appUrl);
     $centralDomains = config('tenancy.central_domains', []);
@@ -307,15 +307,15 @@
         </style>
     </head>
     <body>
-        <main class="wrap">
-            <section class="top">
-                <article class="panel">
-                    <span class="eyebrow">University Portal Access Paused</span>
+        <main >
+            <section >
+                <article >
+                    <span >University Portal Access Paused</span>
                     <h1>{{ $tenant->name }}</h1>
                     <p>{{ $message }}</p>
 
-                    <div class="meta" style="margin-top:22px;">
-                        <div class="status">
+                    <div  >
+                        <div >
                             <strong>Status</strong>
                             <span>{{ ucfirst($tenant->subscriptionStatus()) }}</span>
                         </div>
@@ -330,31 +330,31 @@
                     </div>
                 </article>
 
-                <aside class="panel cta-card">
+                <aside >
                     <div>
-                        <span class="eyebrow">College License</span>
-                        <h2 style="margin:16px 0 8px;font-size:28px;letter-spacing:-0.03em;color:var(--card-ink);">Restore Access</h2>
+                        <span >College License</span>
+                        <h2 >Restore Access</h2>
                         <p>Open University Administration to renew this college license tier and reactivate the portal.</p>
                     </div>
 
-                    <a class="button" href="{{ $renewUrl }}">Open University Administration</a>
+                    <a  href="{{ $renewUrl }}">Open University Administration</a>
 
-                    <div class="helper">
+                    <div >
                         <strong>Current License</strong>
-                        <span style="color:var(--card-muted);">{{ strtoupper($tenant->plan) }}</span>
+                        <span >{{ strtoupper($tenant->plan) }}</span>
                     </div>
                 </aside>
             </section>
 
-            <section class="plans-grid">
+            <section >
                 @foreach ($plans as $key => $plan)
-                    <article class="plan-card {{ $currentPlan === $key ? 'active' : '' }}">
-                        <div class="plan-top">
+                    <article >
+                        <div >
                             <div>
                                 <h2>{{ $plan['label'] }}</h2>
-                                <p class="plan-summary">{{ $plan['summary'] }}</p>
+                                <p >{{ $plan['summary'] }}</p>
                             </div>
-                            <span class="plan-badge">{{ $currentPlan === $key ? 'Current' : 'Plan' }}</span>
+                            <span >{{ $currentPlan === $key ? 'Current' : 'Plan' }}</span>
                         </div>
 
                         <ul>
@@ -368,3 +368,4 @@
         </main>
     </body>
 </html>
+

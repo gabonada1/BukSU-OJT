@@ -4,11 +4,13 @@ namespace App\Http\Controllers\Central;
 
 use App\Http\Controllers\Controller;
 use App\Mail\TenantActivatedMail;
+use App\Mail\TenantAdminCredentialsMail;
 use App\Mail\TenantSubscriptionUpdatedMail;
 use App\Models\Tenant;
 use App\Models\TenantAdmin;
 use App\Models\TenantDomain;
 use App\Models\TenantUser;
+use App\Support\Security\PasswordGenerator;
 use App\Support\Tenancy\TenantDatabaseManager;
 use App\Support\Tenancy\TenantProvisioner;
 use App\Support\Tenancy\TenantSubscriptionNotifier;
@@ -30,6 +32,7 @@ class TenantProvisionController extends Controller
         protected TenantProvisioner $tenantProvisioner,
         protected TenantSubscriptionNotifier $subscriptionNotifier,
         protected TenantUrlGenerator $tenantUrlGenerator,
+        protected PasswordGenerator $passwordGenerator,
     ) {
     }
 
@@ -186,12 +189,13 @@ class TenantProvisionController extends Controller
         $this->authorizeTenantManagement();
 
         $validated = $request->validate([
-            'notification' => ['required', Rule::in(['activation', 'suspension', 'subscription'])],
+            'notification' => ['required', Rule::in(['activation', 'suspension', 'subscription', 'credentials'])],
         ]);
 
         $sent = match ($validated['notification']) {
             'activation' => $this->sendActivationNotice($tenant),
             'subscription' => $this->sendSubscriptionUpdatedNotice($tenant),
+            'credentials' => $this->reissueCoordinatorCredentials($tenant),
             default => $this->subscriptionNotifier->sendSuspensionNotice($tenant, force: true),
         };
 
@@ -336,6 +340,39 @@ class TenantProvisionController extends Controller
     protected function sendSubscriptionUpdatedNotice(Tenant $tenant): bool
     {
         return $this->sendLifecycleMail($tenant, fn ($contact) => new TenantSubscriptionUpdatedMail($tenant, $contact->name));
+    }
+
+    protected function reissueCoordinatorCredentials(Tenant $tenant): bool
+    {
+        $this->tenantDatabaseManager->connect($tenant);
+
+        $admin = TenantAdmin::query()
+            ->where('is_active', true)
+            ->orderBy('id')
+            ->first();
+
+        if (! $admin) {
+            return false;
+        }
+
+        $temporaryPassword = $this->passwordGenerator->generate();
+
+        $admin->forceFill([
+            'password' => $temporaryPassword,
+            'must_change_password' => true,
+        ])->save();
+
+        Mail::to($admin->email)->send(
+            new TenantAdminCredentialsMail(
+                $tenant,
+                $admin->name,
+                $admin->email,
+                $temporaryPassword,
+                $this->tenantUrlGenerator,
+            )
+        );
+
+        return true;
     }
 
     protected function sendLifecycleMail(Tenant $tenant, callable $mailableResolver): bool

@@ -1,4 +1,4 @@
-@php
+﻿@php
     $embedded = $embedded ?? false;
     $showHeading = $showHeading ?? true;
     $mode = $mode ?? 'create';
@@ -10,7 +10,7 @@
 @endphp
 
 @unless ($embedded)
-<article class="card">
+<article >
 @endunless
     @if ($showHeading)
         <h2>{{ $isEditing ? 'Edit Practicum Requirement' : 'New Practicum Requirement' }}</h2>
@@ -40,8 +40,9 @@
         <label>Document File <input type="file" name="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"></label>
         <label>Notes <textarea name="notes" placeholder="Feedback, comments, or revision instructions">{{ old('notes', $requirementRecord?->notes) }}</textarea></label>
         <label>Coordinator Feedback <textarea name="feedback" placeholder="Approved, rejected, or requires revision notes">{{ old('feedback', $requirementRecord?->feedback) }}</textarea></label>
-        <button type="submit" class="small-button">{{ $isEditing ? 'Save Changes' : 'Save Practicum Requirement' }}</button>
+        <button type="submit" >{{ $isEditing ? 'Save Changes' : 'Save Practicum Requirement' }}</button>
     </form>
 @unless ($embedded)
 </article>
 @endunless
+

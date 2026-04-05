@@ -1,4 +1,4 @@
-<x-email-shell
+﻿<x-email-shell
     eyebrow="Student Account"
     title="Your student account is ready"
     subtitle="An Internship Coordinator created your practicum account in {{ $tenant->name }} and issued a temporary password."
@@ -7,28 +7,29 @@
 
     <p>You can sign in right away using the credentials below.</p>
 
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:20px 0;border-collapse:separate;border-spacing:0 10px;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" class="email-data-table">
         <tr>
-            <td style="width:180px;padding:12px 14px;background:#f8f3ef;border:1px solid #eadfd6;border-radius:12px 0 0 12px;"><strong>College</strong></td>
-            <td style="padding:12px 14px;background:#fffaf7;border:1px solid #eadfd6;border-left:0;border-radius:0 12px 12px 0;">{{ $tenant->name }}</td>
+            <td ><strong>College</strong></td>
+            <td >{{ $tenant->name }}</td>
         </tr>
         <tr>
-            <td style="padding:12px 14px;background:#f8f3ef;border:1px solid #eadfd6;border-radius:12px 0 0 12px;"><strong>Email / Username</strong></td>
-            <td style="padding:12px 14px;background:#fffaf7;border:1px solid #eadfd6;border-left:0;border-radius:0 12px 12px 0;">{{ $student->email }}</td>
+            <td ><strong>Email / Username</strong></td>
+            <td >{{ $student->email }}</td>
         </tr>
         <tr>
-            <td style="padding:12px 14px;background:#f8f3ef;border:1px solid #eadfd6;border-radius:12px 0 0 12px;"><strong>Temporary Password</strong></td>
-            <td style="padding:12px 14px;background:#fffaf7;border:1px solid #eadfd6;border-left:0;border-radius:0 12px 12px 0;">{{ $plainPassword }}</td>
+            <td ><strong>Temporary Password</strong></td>
+            <td >{{ $plainPassword }}</td>
         </tr>
         <tr>
-            <td style="padding:12px 14px;background:#f8f3ef;border:1px solid #eadfd6;border-radius:12px 0 0 12px;"><strong>Portal Login URL</strong></td>
-            <td style="padding:12px 14px;background:#fffaf7;border:1px solid #eadfd6;border-left:0;border-radius:0 12px 12px 0;"><a href="{{ $loginUrl }}" style="color:#7B1C2E;">{{ $loginUrl }}</a></td>
+            <td ><strong>Portal Login URL</strong></td>
+            <td ><a href="{{ $loginUrl }}" >{{ $loginUrl }}</a></td>
         </tr>
     </table>
 
-    <p style="margin:22px 0;">
-        <a href="{{ $loginUrl }}" style="display:inline-block;padding:12px 18px;background:#7B1C2E;color:#ffffff;text-decoration:none;border-radius:999px;font-weight:700;">Open Student Portal</a>
+    <p class="email-button-wrap">
+        <a href="{{ $loginUrl }}" class="email-button">Open Student Portal</a>
     </p>
 
     <p>Your account has already been verified by the Internship Coordinator, so you can sign in immediately.</p>
 </x-email-shell>
+

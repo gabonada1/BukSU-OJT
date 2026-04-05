@@ -6,6 +6,7 @@ use App\Http\Controllers\Concerns\AuthorizesTenantPermissions;
 use App\Http\Controllers\Concerns\InteractsWithTenantRouting;
 use App\Mail\StudentCredentialsMail;
 use App\Models\Course;
+use App\Models\InternshipApplication;
 use App\Models\PartnerCompany;
 use App\Models\Student;
 use App\Models\TenantUser;
@@ -123,6 +124,7 @@ class StudentController extends Controller
         unset($data['email_verified']);
 
         $student->update($data);
+        $this->syncStudentApplicationStatus($student->fresh());
 
         return $this->redirectToTenantRoute(
             $request,
@@ -190,5 +192,39 @@ class StudentController extends Controller
                 'partner_company_id' => 'This partner organization has already reached its OJT slot limit.',
             ]);
         }
+    }
+
+    protected function syncStudentApplicationStatus(Student $student): void
+    {
+        if (! in_array($student->status, ['accepted', 'deployed'], true) || ! $student->partner_company_id) {
+            return;
+        }
+
+        $application = InternshipApplication::query()
+            ->where('student_id', $student->getKey())
+            ->where('partner_company_id', $student->partner_company_id)
+            ->whereIn('status', ['pending', 'accepted', 'deployed'])
+            ->latest('applied_at')
+            ->latest('id')
+            ->first();
+
+        if (! $application) {
+            return;
+        }
+
+        $application->update([
+            'status' => $student->status,
+            'reviewed_at' => now(),
+        ]);
+
+        InternshipApplication::query()
+            ->where('student_id', $student->getKey())
+            ->whereKeyNot($application->getKey())
+            ->whereIn('status', ['pending', 'accepted'])
+            ->update([
+                'status' => 'rejected',
+                'admin_feedback' => 'Closed after another internship application was approved.',
+                'reviewed_at' => now(),
+            ]);
     }
 }

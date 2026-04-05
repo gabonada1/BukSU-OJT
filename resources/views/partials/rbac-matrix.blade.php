@@ -2,22 +2,12 @@
     $oldPermissions = old('permissions', []);
 @endphp
 
-<section class="content-stack">
-    <section class="page-head">
-        <div>
+<section class="section-card rbac-shell">
+    <section class="section-header rbac-header">
+        <div class="rbac-header-copy">
             <h1>{{ $title }}</h1>
             <p>{{ $subtitle }}</p>
-        </div>
-
-        <div class="page-mini-stats">
-            <div class="page-mini-card">
-                <strong>Permissions</strong>
-                <span>{{ count($definitions) }}</span>
-            </div>
-            <div class="page-mini-card">
-                <strong>Roles</strong>
-                <span>{{ count($roles) }}</span>
-            </div>
+            <span class="metric-pill rbac-header-pill">Changes apply immediately for tenant roles.</span>
         </div>
     </section>
 
@@ -28,7 +18,7 @@
     @if ($errors->any())
         <div class="error-panel">
             <strong>Role permission changes were not saved.</strong>
-            <ul style="margin:8px 0 0;padding-left:18px;">
+            <ul>
                 @foreach ($errors->all() as $error)
                     <li>{{ $error }}</li>
                 @endforeach
@@ -37,19 +27,19 @@
     @endif
 
     @if (isset($persistenceReady) && ! $persistenceReady)
-        <div class="error-panel">
+        <div class="helper-note">
             <strong>Database update required.</strong>
-            <p style="margin:8px 0 0;">Run <code>php artisan migrate</code> to add the missing RBAC settings column for central superadmin persistence. Default permissions are shown below and still usable as reference.</p>
+            <p>Run <code>php artisan migrate</code> to add the missing RBAC settings column for central superadmin persistence. Default permissions are shown below and still usable as reference.</p>
         </div>
     @endif
 
-    <article class="section-card">
-        <div class="rbac-toolbar">
-            <div class="rbac-toolbar-copy">
+    <article class="dashboard-card dashboard-table-card rbac-card">
+        <div class="table-header rbac-table-header">
+            <div class="rbac-table-copy">
                 <h2>Role Permissions</h2>
-                <p class="section-hint">{{ $description }}</p>
+                <p>{{ $description }}</p>
             </div>
-            <div class="rbac-toolbar-actions">
+            <div class="hero-actions rbac-actions">
                 <form method="POST" action="{{ $resetAction }}">
                     @csrf
                     <button type="submit" class="button secondary">Reset Defaults</button>
@@ -58,10 +48,10 @@
             </div>
         </div>
 
-        <form id="rbac-matrix-form" method="POST" action="{{ $saveAction }}" style="margin-top:18px;">
+        <form id="rbac-matrix-form" method="POST" action="{{ $saveAction }}">
             @csrf
-            <div class="table-wrap">
-                <table class="data-table rbac-table">
+            <div class="table-wrap rbac-table-wrap">
+                <table class="rbac-table">
                     <thead>
                         <tr>
                             <th>Permission</th>
@@ -73,14 +63,14 @@
                     <tbody>
                         @foreach ($definitions as $permissionKey => $definition)
                             <tr>
-                                <td>
-                                    <strong class="rbac-permission-label">{{ $definition['label'] }}</strong>
-                                    <small class="rbac-permission-subject">{{ $definition['subject'] }}</small>
+                                <td class="rbac-permission-cell">
+                                    <strong>{{ ucfirst($definition['label']) }}</strong>
+                                    <small>{{ ucfirst($definition['subject']) }}</small>
                                 </td>
                                 @foreach ($roles as $roleKey => $roleLabel)
-                                    <td class="rbac-check-cell">
+                                    <td class="rbac-toggle-cell">
                                         <input type="hidden" name="permissions[{{ $permissionKey }}][{{ $roleKey }}]" value="0">
-                                        <label class="rbac-checkbox">
+                                        <label class="checkline rbac-toggle">
                                             @php
                                                 $checked = isset($oldPermissions[$permissionKey][$roleKey])
                                                     ? (bool) $oldPermissions[$permissionKey][$roleKey]

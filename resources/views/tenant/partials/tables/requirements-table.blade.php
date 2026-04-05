@@ -1,10 +1,10 @@
-@php
+﻿@php
     $embedded = $embedded ?? false;
     $showHeading = $showHeading ?? true;
 @endphp
 
 @unless ($embedded)
-<article class="card">
+<article>
 @endunless
     @if ($showHeading)
         <h2>Recent Forms & Requirements</h2>
@@ -21,18 +21,31 @@
                         <td>{{ $requirement->requirement_name }}</td>
                         <td>
                             @if ($requirement->file_path)
-                                <a href="{{ asset($requirement->file_path) }}" target="_blank" rel="noopener">Open file</a>
+                                <a class="action-icon-button" href="{{ asset($requirement->file_path) }}" target="_blank" rel="noopener" title="Open file" aria-label="Open file">
+                                    <i class="fa-solid fa-file-arrow-up-right-from-square"></i>
+                                    <span class="sr-only">Open file</span>
+                                </a>
                             @else
                                 No file
                             @endif
                         </td>
-                        <td><span class="badge">{{ $requirement->status }}</span></td>
+                        <td><span>{{ $requirement->status }}</span></td>
                         <td>{{ $requirement->feedback ?: ($requirement->notes ?: 'No feedback yet') }}</td>
-                        <td><a class="panel-link" href="{{ $dashboardBaseUrl.'?section=requirements&edit='.$requirement->id }}">Edit</a></td>
+                        <td>
+                            <a class="action-icon-button action-icon-button-secondary" href="{{ $dashboardBaseUrl.'?section=requirements&edit='.$requirement->id }}" title="Edit requirement" aria-label="Edit requirement">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                                <span class="sr-only">Edit</span>
+                            </a>
+                        </td>
                     </tr>
                 @endforeach
             </tbody>
         </table>
+        @if ($requirements->hasPages())
+            <div class="pagination">
+                {{ $requirements->links() }}
+            </div>
+        @endif
     @endif
 @unless ($embedded)
 </article>

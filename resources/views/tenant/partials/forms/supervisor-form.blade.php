@@ -1,4 +1,4 @@
-@php
+﻿@php
     $embedded = $embedded ?? false;
     $showHeading = $showHeading ?? true;
     $mode = $mode ?? 'create';
@@ -20,7 +20,7 @@
 @endphp
 
 @unless ($embedded)
-<article class="card">
+<article >
 @endunless
     @if ($showHeading)
         <h2>{{ $isEditing ? 'Edit Company Supervisor' : 'New Company Supervisor' }}</h2>
@@ -75,8 +75,9 @@
                 </select>
             </label>
         @endif
-        <button type="submit" class="small-button">{{ $isEditing ? 'Save Changes' : 'Save Company Supervisor' }}</button>
+        <button type="submit" >{{ $isEditing ? 'Save Changes' : 'Save Company Supervisor' }}</button>
     </form>
 @unless ($embedded)
 </article>
 @endunless
+

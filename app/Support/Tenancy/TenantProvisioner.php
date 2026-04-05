@@ -9,6 +9,7 @@ use App\Models\TenantDomain;
 use App\Support\Security\PasswordGenerator;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
@@ -69,13 +70,22 @@ class TenantProvisioner
                 '--force' => true,
             ]);
 
-            TenantAdmin::query()->create([
+            $admin = TenantAdmin::query()->create([
                 'name' => $adminName,
                 'email' => $data['admin_email'],
                 'password' => $adminPassword,
                 'must_change_password' => true,
                 'is_active' => true,
             ]);
+
+            // Guard against any unexpected password drift so the emailed
+            // temporary password always matches the stored coordinator login.
+            if (! Hash::check($adminPassword, (string) $admin->getRawOriginal('password'))) {
+                $admin->forceFill([
+                    'password' => $adminPassword,
+                ])->save();
+                $admin->refresh();
+            }
 
             rescue(function () use ($tenant, $adminName, $data, $adminPassword) {
                 Mail::to($data['admin_email'])->send(

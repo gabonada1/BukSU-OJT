@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\AuthorizesTenantPermissions;
 use App\Models\PartnerCompany;
+use App\Support\Security\RbacMatrix;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -48,6 +49,8 @@ class StudentDashboardController extends Controller
             'currentSection' => $section,
             'studentApplicationAction' => route('tenant.student.applications.store'),
             'studentRequirementAction' => route('tenant.student.requirements.store'),
+            'canSubmitApplications' => RbacMatrix::tenantAllows($tenant, 'student', 'application.submit'),
+            'canSubmitRequirements' => RbacMatrix::tenantAllows($tenant, 'student', 'requirement.submit'),
         ]);
     }
 }

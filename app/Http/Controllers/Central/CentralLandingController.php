@@ -21,7 +21,7 @@ class CentralLandingController extends Controller
                 'Separate per-university tenant database for cleaner practicum records and access control.',
                 'Role-based portals for internship coordinators, students, and company supervisors.',
                 'Built-in workflows for partner companies, applications, requirements, progress reports, evaluations, and OJT hours.',
-                'Central approval and provisioning so Bukidnon State University controls new tenant creation.',
+                'Central approval and provisioning so each institution can launch a controlled, consistent practicum workspace.',
             ],
             'stats' => [
                 'active_tenants' => $tenants->filter(fn (Tenant $tenant) => $tenant->canAccessTenantApp())->count(),

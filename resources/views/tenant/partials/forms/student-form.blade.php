@@ -1,4 +1,4 @@
-@php
+﻿@php
     $embedded = $embedded ?? false;
     $showHeading = $showHeading ?? true;
     $mode = $mode ?? 'create';
@@ -19,7 +19,7 @@
 @endphp
 
 @unless ($embedded)
-<article class="card">
+<article >
 @endunless
     @if ($showHeading)
         <h2>{{ $isEditing ? 'Edit Student' : 'New Student' }}</h2>
@@ -43,16 +43,16 @@
         <label>Email <input type="email" name="email" value="{{ old('email', $studentRecord?->email) }}" required></label>
         <label>
             Password
-            <div class="field-with-action">
+            <div class="input-action-row">
                 <input id="{{ $passwordFieldId }}" type="password" name="password" placeholder="{{ $isEditing ? 'Leave blank to keep current password' : 'Leave blank to auto-generate' }}">
-                <button type="button" class="panel-link tiny-link" data-generate-password data-target="#{{ $passwordFieldId }}">Randomize</button>
+                <button type="button" class="button secondary input-action-button" data-generate-password data-target="#{{ $passwordFieldId }}">Randomize</button>
             </div>
         </label>
 
         @if ($hasCourses)
-            <label class="field-span-2">
+            <label >
                 Course / Program
-                <select name="course_id" class="select-input" data-course-select>
+                <select name="course_id"  data-course-select>
                     <option value="">- Select Course -</option>
 
                     @if ($selectedInactiveCourse)
@@ -67,10 +67,10 @@
                         </option>
                     @endforeach
                 </select>
-                <small class="field-hint">Selecting a course auto-fills the required OJT hours based on the course setting.</small>
+                <small >Selecting a course auto-fills the required OJT hours based on the course setting.</small>
 
                 @if ($studentRecord?->program && ! $selectedCourseId)
-                    <small class="field-hint">Legacy program on file: {{ $studentRecord->program }}</small>
+                    <small >Legacy program on file: {{ $studentRecord->program }}</small>
                 @endif
             </label>
 
@@ -78,16 +78,16 @@
                 Required OJT Hours
                 <input type="number" name="required_hours" data-required-hours value="{{ old('required_hours', $studentRecord?->required_hours ?? $defaultOjtHours) }}" min="1" max="9999" step="0.5" {{ $allowHourOverride ? '' : 'readonly' }}>
                 @if ($allowHourOverride)
-                    <small class="field-hint">You can keep the course default or adjust this student individually.</small>
+                    <small >You can keep the course default or adjust this student individually.</small>
                 @else
-                    <small class="field-hint">This stays synced to the selected course or the college default.</small>
+                    <small >This stays synced to the selected course or the college default.</small>
                 @endif
             </label>
         @else
-            <label class="field-span-2">
+            <label >
                 Program / Course
                 <input type="text" name="program" value="{{ old('program', $studentRecord?->program ?? '') }}" placeholder="e.g. BSIT, BSCpE, BSCS">
-                <small class="field-hint">No active courses are configured yet. Set them up in Profile -> Courses & Programs.</small>
+                <small >No active courses are configured yet. Set them up in Profile -> Courses & Programs.</small>
             </label>
 
             <label>
@@ -132,8 +132,8 @@
                 </select>
             </label>
         @endif
-        <p class="field-hint">{{ $isEditing ? 'Leave password blank if you do not want to change it.' : 'Leave the password blank to auto-generate it, or click Randomize. The final password will be emailed to the student automatically.' }}</p>
-        <button type="submit" class="small-button">{{ $isEditing ? 'Save Changes' : 'Save Student' }}</button>
+        <p >{{ $isEditing ? 'Leave password blank if you do not want to change it.' : 'Leave the password blank to auto-generate it, or click Randomize. The final password will be emailed to the student automatically.' }}</p>
+        <button type="submit" >{{ $isEditing ? 'Save Changes' : 'Save Student' }}</button>
     </form>
 
     @if ($hasCourses)
@@ -170,3 +170,4 @@
 @unless ($embedded)
 </article>
 @endunless
+

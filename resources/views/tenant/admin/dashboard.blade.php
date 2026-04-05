@@ -26,7 +26,7 @@
             'form' => 'tenant.partials.forms.student-form',
         ],
         'users' => [
-            'title' => 'RBAC & User Management',
+            'title' => 'User Management',
             'empty' => 'No university portal users yet.',
             'table' => 'tenant.partials.tables.users-table',
             'form' => 'tenant.partials.forms.user-management-form',
@@ -71,73 +71,23 @@
     $dashboardBaseUrl = route('tenant.admin.dashboard');
     $baseSectionUrl = $dashboardBaseUrl.'?section='.$currentSection;
     $sectionCreateTitle = $section['create_title'] ?? \Illuminate\Support\Str::singular($section['title']);
+    $sectionSummary = [
+        'companies' => 'Review placement partners, open internship slots, and supervisor coverage from one workspace.',
+        'supervisors' => 'Keep supervisor records complete so approvals, evaluations, and student monitoring stay organized.',
+        'students' => 'Track student deployment, course assignment, and application history without leaving the dashboard.',
+        'users' => 'Manage coordinator, supervisor, and student accounts inside this tenant workspace.',
+        'requirements' => 'Review requirement submissions, monitor approval flow, and keep document compliance moving.',
+        'hours' => 'Watch validated duty hours, keep logs accurate, and surface records that still need review.',
+    ][$currentSection];
 @endphp
 
 @extends('layouts.tenant')
 
 @section('content')
-    <section class="admin-hero">
-        <div class="admin-hero-copy">
-            <span class="admin-eyebrow">Tenant Workspace</span>
-            <h1>{{ $tenant->name }}</h1>
-            <p>Internship Coordinator Dashboard for {{ $sections[$currentSection]['title'] }}.</p>
-            <div class="admin-action-row">
-                @if ($currentSection === 'users')
-                    <a class="button" href="{{ $dashboardBaseUrl.'?section=students&create=students' }}">Create Student</a>
-                    <a class="button secondary" href="{{ $dashboardBaseUrl.'?section=supervisors&create=supervisors' }}">Create Supervisor</a>
-                @else
-                    <a class="button" href="{{ $dashboardBaseUrl.'?section='.$currentSection.'&create='.$currentSection }}">Add Record</a>
-                    <a class="button secondary" href="{{ route('tenant.admin.profile.show') }}">Open Profile</a>
-                @endif
-            </div>
-        </div>
-
-        <div class="admin-hero-metrics">
-            <article class="admin-hero-panel">
-                <span>Organizations</span>
-                <strong>{{ $stats['companies'] }}</strong>
-                <small>Partner companies in this tenant portal</small>
-            </article>
-            <article class="admin-hero-panel">
-                <span>Students</span>
-                <strong>{{ $stats['students'] }}</strong>
-                <small>Intern records currently tracked</small>
-            </article>
-            <article class="admin-hero-panel">
-                <span>Users</span>
-                <strong>{{ $stats['users'] }}</strong>
-                <small>Coordinators, supervisors, and students with access</small>
-            </article>
-        </div>
-    </section>
-
-    <section class="admin-kpi-grid">
-        <article class="admin-stat-card">
-            <span>Applications</span>
-            <strong>{{ $stats['applications'] }}</strong>
-            <small>Internship submissions across this tenant</small>
-        </article>
-        <article class="admin-stat-card">
-            <span>Supervisors</span>
-            <strong>{{ $stats['supervisors'] }}</strong>
-            <small>Partner-company supervisors available</small>
-        </article>
-        <article class="admin-stat-card">
-            <span>Approved Requirements</span>
-            <strong>{{ $stats['approved_requirements'] }}</strong>
-            <small>Documents cleared by coordinators</small>
-        </article>
-        <article class="admin-stat-card">
-            <span>Approved Hours</span>
-            <strong>{{ number_format($stats['approved_hours'], 0) }}</strong>
-            <small>Validated practicum hours recorded</small>
-        </article>
-    </section>
-
     @if ($errors->any())
         <div class="error-panel">
             <strong>Some university portal updates did not complete.</strong>
-            <ul style="margin:8px 0 0;padding-left:18px;">
+            <ul>
                 @foreach ($errors->all() as $error)
                     <li>{{ $error }}</li>
                 @endforeach
@@ -149,52 +99,33 @@
         <div class="flash">{{ session('status') }}</div>
     @endif
 
-    @if ($currentSection === 'users')
-        <section class="chart-grid" style="margin-bottom:20px;">
-            <article class="section-card">
-                <div class="action-row">
-                    <h2>Tenant Admin RBAC</h2>
-                    <span class="pill">Tenant Scope</span>
-                </div>
-                <ul class="soft-list" style="margin-top:16px;">
-                    <li>Internship coordinators control tenant users only inside this university portal.</li>
-                    <li>You can activate, suspend, and reassign users between student, supervisor, and coordinator roles.</li>
-                    <li>Central superadmin still controls tenant creation, subscription, activation, and approved domains.</li>
-                </ul>
-            </article>
-
-            <article class="section-card">
-                <div class="action-row">
-                    <h2>Quick Access</h2>
-                    <span class="pill">RBAC UI</span>
-                </div>
-                <div class="action-row-actions" style="margin-top:16px;">
-                    <a class="button secondary" href="{{ $dashboardBaseUrl.'?section=students&create=students' }}">Create Student</a>
-                    <a class="button secondary" href="{{ $dashboardBaseUrl.'?section=supervisors&create=supervisors' }}">Create Supervisor</a>
-                    <a class="button secondary" href="{{ $dashboardBaseUrl.'?section=users' }}">Manage Roles</a>
-                </div>
-            </article>
-        </section>
-    @endif
-
-    <section id="{{ $currentSection }}" class="content-stack section-anchor">
-        <article class="section-card">
-            <div class="action-row">
+    <section class="section-card" id="{{ $currentSection }}">
+        <div class="table-header">
+            <div>
                 <h2>{{ $section['title'] }}</h2>
-                <div class="action-row-actions">
-                    @if ($currentSection === 'users')
-                        <a class="panel-link" href="{{ $dashboardBaseUrl.'?section=students&create=students' }}">Add Student</a>
-                    @else
-                        <a class="panel-link" href="{{ $dashboardBaseUrl.'?section='.$currentSection.'&create='.$currentSection }}">Add Record</a>
-                    @endif
-                </div>
+                <p>{{ $sectionSummary }}</p>
             </div>
+            <div class="toolbar-actions">
+                @if ($currentSection === 'users')
+                    @if ($tenantPermissions['user.create'] ?? false)
+                        <a class="panel-link" href="{{ $dashboardBaseUrl.'?section=students&create=students' }}">Add Student</a>
+                    @endif
+                    <a class="panel-link" href="{{ $rbacIndexUrl }}">RBAC</a>
+                @else
+                    <a class="panel-link" href="{{ $dashboardBaseUrl.'?section='.$currentSection.'&create='.$currentSection }}">Add Record</a>
+                @endif
+            </div>
+        </div>
 
+        <div class="dashboard-stack">
             @if ($showCreatePanel)
-                <div class="form-panel">
-                    <div class="form-panel-header">
-                        <h3>New {{ $sectionCreateTitle }}</h3>
-                        <a class="panel-close" href="{{ $baseSectionUrl }}">&times;</a>
+                <div class="dashboard-card dashboard-editor-card">
+                    <div class="table-header">
+                        <div>
+                            <span class="mini-kicker">Create</span>
+                            <h2>New {{ $sectionCreateTitle }}</h2>
+                        </div>
+                        <a class="panel-link" href="{{ $baseSectionUrl }}">Close</a>
                     </div>
 
                     @include($section['form'], ['embedded' => true, 'showHeading' => false])
@@ -202,23 +133,31 @@
             @endif
 
             @if ($showEditPanel)
-                <div class="form-panel">
-                    <div class="form-panel-header">
-                        <h3>Edit {{ $section['title'] === 'User Management' ? 'User' : $sectionCreateTitle }}</h3>
-                        <a class="panel-close" href="{{ $baseSectionUrl }}">&times;</a>
+                <div class="dashboard-card dashboard-editor-card">
+                    <div class="table-header">
+                        <div>
+                            <span class="mini-kicker">Edit</span>
+                            <h2>Edit {{ $section['title'] === 'User Management' ? 'User' : $sectionCreateTitle }}</h2>
+                        </div>
+                        <a class="panel-link" href="{{ $baseSectionUrl }}">Close</a>
                     </div>
 
                     @include($section['form'], ['embedded' => true, 'showHeading' => false, 'mode' => 'edit'])
                 </div>
             @endif
 
-            @include($section['table'], ['embedded' => true, 'showHeading' => false])
+            <div class="dashboard-card dashboard-table-card">
+                @include($section['table'], ['embedded' => true, 'showHeading' => false])
+            </div>
 
             @if ($currentSection === 'students' && $selectedStudentForApplications)
-                <div class="form-panel">
-                    <div class="form-panel-header">
-                        <h3>Applications for {{ $selectedStudentForApplications->full_name }}</h3>
-                        <a class="panel-close" href="{{ $baseSectionUrl }}">&times;</a>
+                <div class="dashboard-card dashboard-table-card">
+                    <div class="table-header">
+                        <div>
+                            <span class="mini-kicker">Student History</span>
+                            <h2>Applications for {{ $selectedStudentForApplications->full_name }}</h2>
+                        </div>
+                        <a class="panel-link" href="{{ $baseSectionUrl }}">Close</a>
                     </div>
 
                     @include('tenant.partials.tables.applications-table', [
@@ -229,6 +168,6 @@
                     ])
                 </div>
             @endif
-        </article>
+        </div>
     </section>
 @endsection

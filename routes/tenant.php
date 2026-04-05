@@ -30,11 +30,9 @@ $registerTenantRoutes = function (string $namePrefix) use ($loginRoles): void {
         ->whereIn('role', $loginRoles)
         ->name("{$namePrefix}login.store");
 
-    Route::middleware('guest:tenant_admin,supervisor,student')->group(function () use ($namePrefix) {
-        Route::get('/register', [TenantRegistrationController::class, 'create'])->name("{$namePrefix}register.create");
-        Route::post('/register', [TenantRegistrationController::class, 'store'])->name("{$namePrefix}register.store");
-        Route::get('/register/verify/{token}', [TenantRegistrationController::class, 'verify'])->name("{$namePrefix}register.verify");
-    });
+    Route::get('/register', [TenantRegistrationController::class, 'create'])->name("{$namePrefix}register.create");
+    Route::post('/register', [TenantRegistrationController::class, 'store'])->name("{$namePrefix}register.store");
+    Route::get('/register/verify/{token}', [TenantRegistrationController::class, 'verify'])->name("{$namePrefix}register.verify");
 
     Route::middleware(['auth:tenant_admin', 'tenant.account'])->group(function () use ($namePrefix) {
         Route::post('/admin/logout', [TenantAuthController::class, 'destroy'])

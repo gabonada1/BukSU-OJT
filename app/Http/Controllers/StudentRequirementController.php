@@ -104,7 +104,7 @@ class StudentRequirementController extends Controller
         $student = Auth::guard('student')->user();
 
         abort_unless($tenant && $student, 404);
-        $this->authorizeTenantPermission('application.manage', $tenant);
+        $this->authorizeTenantPermission('requirement.submit', $tenant);
 
         $data = $request->validate([
             'requirement_name' => ['required', 'string', 'max:255'],

@@ -1,11 +1,13 @@
 <?php
 
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Auth\Middleware\Authenticate;
 use Illuminate\Auth\Middleware\RedirectIfAuthenticated;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -89,5 +91,46 @@ return Application::configure(basePath: dirname(__DIR__))
         });
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $redirectForbidden = function (string $message, Request $request) {
+            if ($request->expectsJson()) {
+                return null;
+            }
+
+            $fallbackPath = match (true) {
+                auth('tenant_admin')->check() => '/admin/dashboard',
+                auth('supervisor')->check() => '/supervisor/dashboard',
+                auth('student')->check() => '/student/dashboard',
+                auth('central_superadmin')->check() => '/central/dashboard',
+                default => '/login',
+            };
+
+            $target = url()->previous();
+
+            if (! $target || $target === $request->fullUrl()) {
+                $target = $fallbackPath;
+            }
+
+            return redirect($target)->with('toast', [
+                'type' => 'info',
+                'message' => $message ?: 'You do not have permission to perform this action.',
+            ]);
+        };
+
+        $exceptions->render(function (AuthorizationException $exception, Request $request) {
+            return $redirectForbidden(
+                $exception->getMessage() ?: 'You do not have permission to perform this action.',
+                $request
+            );
+        });
+
+        $exceptions->render(function (HttpExceptionInterface $exception, Request $request) use ($redirectForbidden) {
+            if ($exception->getStatusCode() !== 403) {
+                return null;
+            }
+
+            return $redirectForbidden(
+                $exception->getMessage() ?: 'You do not have permission to perform this action.',
+                $request
+            );
+        });
     })->create();

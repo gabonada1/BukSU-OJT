@@ -1,4 +1,4 @@
-<article class="card">
+﻿<article >
     <h2>{{ $title }}</h2>
     <ul>
         @foreach ($items as $item)
@@ -6,3 +6,4 @@
         @endforeach
     </ul>
 </article>
+
