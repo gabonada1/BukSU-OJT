@@ -5,9 +5,10 @@
     $systemLogo = asset('images/logos/logo.jpg');
     $centralCurrentSection = request()->query('section', 'overview');
     $centralNavigation = [
-        ['label' => 'Overview', 'href' => route('central.dashboard').'?section=overview', 'active' => $centralCurrentSection === 'overview', 'meta' => 'System pulse', 'icon' => 'fa-chart-line'],
-        ['label' => 'Applications', 'href' => route('central.dashboard').'?section=applications', 'active' => $centralCurrentSection === 'applications', 'meta' => 'Plan reviews', 'icon' => 'fa-inbox'],
-        ['label' => 'Directory', 'href' => route('central.dashboard').'?section=directory', 'active' => $centralCurrentSection === 'directory', 'meta' => 'Tenant records', 'icon' => 'fa-building'],
+        ['label' => 'Overview', 'href' => route('central.dashboard').'?section=overview', 'active' => request()->routeIs('central.dashboard') && $centralCurrentSection === 'overview', 'meta' => 'System pulse', 'icon' => 'fa-chart-line'],
+        ['label' => 'Applications', 'href' => route('central.dashboard').'?section=applications', 'active' => request()->routeIs('central.dashboard') && $centralCurrentSection === 'applications', 'meta' => 'Plan reviews', 'icon' => 'fa-inbox'],
+        ['label' => 'Directory', 'href' => route('central.dashboard').'?section=directory', 'active' => request()->routeIs('central.dashboard') && $centralCurrentSection === 'directory', 'meta' => 'Tenant records', 'icon' => 'fa-building'],
+        ['label' => 'Updates', 'href' => route('central.updates.index'), 'active' => request()->routeIs('central.updates.*'), 'meta' => 'GitHub releases', 'icon' => 'fa-code-branch'],
     ];
     $activeCentralNav = collect($centralNavigation)->first(fn ($item) => $item['active'] ?? false) ?? $centralNavigation[0];
 @endphp

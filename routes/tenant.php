@@ -6,6 +6,7 @@ use App\Http\Controllers\PartnerCompanyController;
 use App\Http\Controllers\StudentDashboardController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\CourseController;
+use App\Http\Controllers\TenantReleaseController;
 use App\Http\Controllers\TenantAdminPasswordSetupController;
 use App\Http\Controllers\TenantProfileController;
 use App\Http\Controllers\TenantRegistrationController;
@@ -48,6 +49,8 @@ $registerTenantRoutes = function (string $namePrefix) use ($loginRoles): void {
         Route::put('/admin/profile/password', [TenantProfileController::class, 'updatePassword'])->defaults('role', 'admin')->name("{$namePrefix}admin.profile.password.update");
         Route::post('/admin/profile/branding-settings', [TenantProfileController::class, 'saveBrandingSettings'])->defaults('role', 'admin')->name("{$namePrefix}admin.profile.branding-settings");
         Route::post('/admin/profile/ojt-settings', [TenantProfileController::class, 'saveOjtSettings'])->defaults('role', 'admin')->name("{$namePrefix}admin.profile.ojt-settings");
+        Route::get('/admin/updates', [TenantReleaseController::class, 'index'])->name("{$namePrefix}admin.updates.index");
+        Route::post('/admin/updates', [TenantReleaseController::class, 'apply'])->name("{$namePrefix}admin.updates.apply");
         Route::get('/admin/rbac', [TenantRbacController::class, 'index'])->name("{$namePrefix}admin.rbac.index");
         Route::post('/admin/rbac', [TenantRbacController::class, 'update'])->name("{$namePrefix}admin.rbac.update");
         Route::post('/admin/rbac/reset', [TenantRbacController::class, 'reset'])->name("{$namePrefix}admin.rbac.reset");

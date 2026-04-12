@@ -2990,6 +2990,52 @@ ul.clean-list {
     display: none;
 }
 
+.updates-release-list {
+    display: grid;
+    gap: 14px;
+}
+
+.updates-release-row,
+.tenant-update-option {
+    display: grid;
+    gap: 12px;
+    padding: 18px 20px;
+    border-radius: 22px;
+    border: 1px solid rgba(111, 128, 167, 0.18);
+    background: linear-gradient(180deg, rgba(17, 28, 56, 0.92), rgba(14, 23, 46, 0.94));
+}
+
+.updates-release-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+}
+
+.updates-release-row p,
+.tenant-update-option small,
+.tenant-update-option-notes {
+    margin: 6px 0 0;
+    color: var(--app-muted);
+    line-height: 1.6;
+}
+
+.tenant-update-option {
+    cursor: pointer;
+}
+
+.tenant-update-option-main {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.tenant-update-option-main input[type="radio"] {
+    margin-top: 3px;
+}
+
+.tenant-update-option-notes {
+    font-size: 14px;
+}
+
 @media (max-width: 1180px) {
     .dashboard-hero,
     .landing-hero,

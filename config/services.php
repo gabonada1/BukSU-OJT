@@ -44,4 +44,13 @@ return [
         'ca_bundle' => env('STRIPE_CA_BUNDLE'),
     ],
 
+    'github' => [
+        'token' => env('GITHUB_TOKEN'),
+        'repository' => env('GITHUB_REPOSITORY', 'gabonada1/BukSU-Practicum'),
+        'api_url' => env('GITHUB_API_URL', 'https://api.github.com'),
+        'api_version' => env('GITHUB_API_VERSION', '2022-11-28'),
+        'verify_ssl' => env('GITHUB_VERIFY_SSL', true),
+        'ca_bundle' => env('GITHUB_CA_BUNDLE'),
+    ],
+
 ];
